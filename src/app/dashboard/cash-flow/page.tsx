@@ -78,6 +78,8 @@ export default function CashFlowPage() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
+  const [category, setCategory] = useState<'business' | 'personal'>('business');
+
 
   useEffect(() => {
     // --- Load data from localStorage on component mount ---
@@ -250,25 +252,47 @@ export default function CashFlowPage() {
                   disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <RadioGroup
-                  value={type}
-                  onValueChange={(value) =>
-                    setType(value as 'income' | 'expense')
-                  }
-                  className="flex gap-4"
-                  disabled={selectedMonth !== getCurrentMonthKey()}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="income" id="income" />
-                    <Label htmlFor="income">Entrada</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="expense" id="expense" />
-                    <Label htmlFor="expense">Gasto</Label>
-                  </div>
-                </RadioGroup>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <RadioGroup
+                    value={type}
+                    onValueChange={(value) =>
+                      setType(value as 'income' | 'expense')
+                    }
+                    className="flex gap-4"
+                    disabled={selectedMonth !== getCurrentMonthKey()}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="income" id="income" />
+                      <Label htmlFor="income">Entrada</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="expense" id="expense" />
+                      <Label htmlFor="expense">Gasto</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                   <RadioGroup
+                    value={category}
+                    onValueChange={(value) =>
+                      setCategory(value as 'business' | 'personal')
+                    }
+                    className="flex gap-4"
+                    disabled={selectedMonth !== getCurrentMonthKey()}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="business" id="business" />
+                      <Label htmlFor="business">Empresarial</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="personal" id="personal" />
+                      <Label htmlFor="personal">Pessoal</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
             </CardContent>
             <CardFooter>
@@ -418,5 +442,3 @@ export default function CashFlowPage() {
     </div>
   );
 }
-
-    
