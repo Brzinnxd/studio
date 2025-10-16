@@ -12,6 +12,8 @@ import {
   ShoppingCart,
   Users,
   ChevronDown,
+  Briefcase,
+  User,
 } from 'lucide-react';
 
 import { Logo } from '@/components/logo';
@@ -162,23 +164,29 @@ export function MainNav() {
                     <ChevronDown className={cn("h-4 w-4 transition-transform", isCashFlowOpen && "rotate-180")} />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pl-8 space-y-1">
+                <CollapsibleContent className="pl-4 pt-1 space-y-1 data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
                   <SidebarMenuButton
                     asChild
                     size="sm"
                     variant="ghost"
                     isActive={isActive('/dashboard/cash-flow')}
+                    className="w-full"
                   >
-                    <Link href="/dashboard/cash-flow">Empresarial</Link>
+                    <Link href="/dashboard/cash-flow">
+                        <Briefcase className="h-4 w-4" />
+                        <span>Empresarial</span>
+                    </Link>
                   </SidebarMenuButton>
                   <SidebarMenuButton
                     asChild
                     size="sm"
                     variant="ghost"
                     isActive={isActive('/dashboard/personal-cash-flow')}
+                    className="w-full"
                   >
                     <Link href="/dashboard/personal-cash-flow">
-                      Pessoal
+                      <User className="h-4 w-4" />
+                      <span>Pessoal</span>
                     </Link>
                   </SidebarMenuButton>
                 </CollapsibleContent>
