@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { sweets as initialSweets, type Sweet } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
-import { ShoppingCart, Pencil, Upload } from 'lucide-react';
+import { ShoppingCart, Pencil, Upload, Link as LinkIcon } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 import {
   Dialog,
@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 type DisplaySweet = Sweet & { newImageUrl?: string };
 
@@ -146,7 +147,7 @@ function EditProductModal({
     return null;
   }
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -156,6 +157,11 @@ function EditProductModal({
       reader.readAsDataURL(file);
     }
   };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedSweet({ ...editedSweet, newImageUrl: e.target.value });
+  };
+
 
   const handleSave = () => {
     onSave(editedSweet);
@@ -191,17 +197,38 @@ function EditProductModal({
                         </div>
                     )}
                 </div>
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                />
-                <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Alterar Imagem
-                </Button>
+                <div className="space-y-2">
+                    <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                    />
+                    <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Carregar do Computador
+                    </Button>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">OU</span>
+                        </div>
+                    </div>
+                    
+                    <div className='relative'>
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Cole o link da imagem aqui"
+                            className="pl-9"
+                            onChange={handleImageUrlChange}
+                        />
+                    </div>
+                </div>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
