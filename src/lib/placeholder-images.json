@@ -9,49 +9,49 @@
     {
       "id": "bolo-de-pote",
       "description": "A cake in a jar",
-      "imageUrl": "https://www.receiteria.com.br/wp-content/uploads/receitas-de-bolo-de-pote-de-chocolate-00.jpg",
+      "imageUrl": "https://production.bomgourmet.com.br/ws/uploads/2021/04/13180228/bolo-de-pote-cenoura-com-brigadeiro.jpg",
       "imageHint": "jar cake"
     },
     {
       "id": "cocada",
       "description": "Pieces of brazilian cocada",
-      "imageUrl": "https://www.acucaruniao.com.br/wp-content/uploads/2020/01/cocada-cremosa-de-colher-e1654284560946.jpg",
+      "imageUrl": "https://www.dicasdemulher.com.br/wp-content/uploads/2016/09/cocada-11.jpg",
       "imageHint": "coconut candy"
     },
     {
       "id": "pe-de-moleque",
       "description": "Brazilian peanut brittle called Pé de Moleque",
-      "imageUrl": "https://classic.exame.com/wp-content/uploads/2023/06/Pe-de-moleque.jpg?quality=70&strip=info&w=1024",
+      "imageUrl": "https://www.receitasnestle.com.br/sites/default/files/srh_recipes/482701b970634127027d532a8292d3f0.jpg",
       "imageHint": "peanut brittle"
     },
     {
       "id": "pe-de-moca",
       "description": "A softer, creamier version of Pé de Moleque",
-      "imageUrl": "https://static.itdg.com.br/images/1200-630/9b472e04344d5f6e87f558117d3d191b/312011-original.jpg",
+      "imageUrl": "https://www.receitasnestle.com.br/sites/default/files/srh_recipes/5e81d77d70631d8c11435272a81878d6.jpg",
       "imageHint": "peanut candy"
     },
     {
       "id": "morango-do-amor",
       "description": "A candy apple-style strawberry",
-      "imageUrl": "https://conteudo.imguol.com.br/c/entretenimento/d0/2024/05/17/maca-do-amor-de-morango-1715978144257_v2_4x3.jpg",
+      "imageUrl": "https://comidinhasdochef.com/wp-content/uploads/2023/06/Ma%C3%A7a-do-Amor-de-Morango.jpg",
       "imageHint": "candy strawberry"
     },
     {
       "id": "mousse-de-maracuja",
       "description": "A passion fruit mousse",
-      "imageUrl": "https://www.sabornamesa.com.br/media/k2/items/cache/0902337e7776bed01844578525345700_L.jpg",
+      "imageUrl": "https://static.itdg.com.br/images/auto-auto/844618e470c27f1c180907d2c35b6826/mousse-de-maracuja.jpg",
       "imageHint": "passionfruit mousse"
     },
     {
       "id": "espetinho-de-morango",
       "description": "A skewer of strawberries with chocolate",
-      "imageUrl": "https://img.elo7.com.br/product/main/265A162/espeto-de-morango-com-chocolate-espeto-de-morango.jpg",
+      "imageUrl": "https://img.elo7.com.br/product/zoom/265A162/espeto-de-morango-com-chocolate-espeto-de-morango.jpg",
       "imageHint": "strawberry skewer"
     },
     {
       "id": "bombom-de-chocolate",
       "description": "A delicious chocolate bonbon",
-      "imageUrl": "https://anamariabraga.globo.com/wp-content/uploads/2023/09/bombom-de-morango-na-travessa-1024x576.jpg",
+      "imageUrl": "https://www.receiteria.com.br/wp-content/uploads/receitas-de-bombom-de-morango.jpg",
       "imageHint": "chocolate bonbon"
     }
   ]
