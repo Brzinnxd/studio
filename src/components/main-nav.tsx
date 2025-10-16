@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Users,
+  ChevronDown,
 } from 'lucide-react';
 
 import { Logo } from '@/components/logo';
@@ -30,20 +31,21 @@ import {
 import { Separator } from './ui/separator';
 import { useCart } from '@/context/cart-context';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export function MainNav() {
   const pathname = usePathname();
   const { cartItemCount } = useCart();
   const [isCashFlowOpen, setIsCashFlowOpen] = useState(
-    pathname.includes('/dashboard/cash-flow')
+    pathname.includes('/dashboard/cash-flow') || pathname.includes('/dashboard/personal-cash-flow')
   );
 
-  const isActive = (path: string) => {
-    if (path === '/') return pathname === '/';
-    if (path.endsWith('/dashboard/cash-flow'))
-      return pathname === '/dashboard/cash-flow';
+  const isActive = (path: string, exact: boolean = false) => {
+    if (exact) return pathname === path;
     return pathname.startsWith(path);
   };
+  
+  const isCashFlowActive = isActive('/dashboard/cash-flow') || isActive('/dashboard/personal-cash-flow');
 
   return (
     <>
@@ -55,7 +57,7 @@ export function MainNav() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={isActive('/')}
+              isActive={isActive('/', true)}
               tooltip="Catálogo"
             >
               <Link href="/">
@@ -87,7 +89,7 @@ export function MainNav() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={isActive('/dashboard') && pathname.split('/').length === 2}
+                isActive={isActive('/dashboard', true)}
                 tooltip="Dashboard"
               >
                 <Link href="/dashboard">
@@ -149,12 +151,15 @@ export function MainNav() {
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton
                     variant="ghost"
-                    className="w-full justify-start"
-                    isActive={isActive('/dashboard/cash-flow')}
+                    className="w-full justify-between"
+                    isActive={isCashFlowActive}
                     tooltip="Fluxo de Caixa"
                   >
-                    <CandlestickChart />
-                    <span>Fluxo de Caixa</span>
+                    <div className="flex items-center gap-2">
+                      <CandlestickChart />
+                      <span>Fluxo de Caixa</span>
+                    </div>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isCashFlowOpen && "rotate-180")} />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-8 space-y-1">
