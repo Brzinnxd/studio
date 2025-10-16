@@ -3,55 +3,55 @@
     {
       "id": "bala-baiana",
       "description": "A plate of classic Balas Baianas",
-      "imageUrl": "https://picsum.photos/seed/1/600/400",
+      "imageUrl": "https://picsum.photos/seed/20/600/400",
       "imageHint": "caramel candy"
     },
     {
       "id": "bolo-de-pote",
       "description": "A cake in a jar",
-      "imageUrl": "https://picsum.photos/seed/6/600/400",
+      "imageUrl": "https://picsum.photos/seed/21/600/400",
       "imageHint": "jar cake"
     },
     {
       "id": "cocada",
       "description": "Pieces of brazilian cocada",
-      "imageUrl": "https://picsum.photos/seed/9/600/400",
+      "imageUrl": "https://picsum.photos/seed/22/600/400",
       "imageHint": "coconut candy"
     },
     {
       "id": "pe-de-moleque",
       "description": "Brazilian peanut brittle called Pé de Moleque",
-      "imageUrl": "https://picsum.photos/seed/10/600/400",
+      "imageUrl": "https://picsum.photos/seed/23/600/400",
       "imageHint": "peanut brittle"
     },
     {
       "id": "pe-de-moca",
       "description": "A softer, creamier version of Pé de Moleque",
-      "imageUrl": "https://picsum.photos/seed/11/600/400",
+      "imageUrl": "https://picsum.photos/seed/24/600/400",
       "imageHint": "peanut candy"
     },
     {
       "id": "morango-do-amor",
       "description": "A candy apple-style strawberry",
-      "imageUrl": "https://picsum.photos/seed/12/600/400",
+      "imageUrl": "https://picsum.photos/seed/25/600/400",
       "imageHint": "candy strawberry"
     },
     {
       "id": "mousse-de-maracuja",
       "description": "A passion fruit mousse",
-      "imageUrl": "https://picsum.photos/seed/13/600/400",
+      "imageUrl": "https://picsum.photos/seed/26/600/400",
       "imageHint": "passionfruit mousse"
     },
     {
       "id": "espetinho-de-morango",
       "description": "A skewer of strawberries with chocolate",
-      "imageUrl": "https://picsum.photos/seed/14/600/400",
+      "imageUrl": "https://picsum.photos/seed/27/600/400",
       "imageHint": "strawberry skewer"
     },
     {
       "id": "bombom-de-chocolate",
       "description": "A delicious chocolate bonbon",
-      "imageUrl": "https://picsum.photos/seed/15/600/400",
+      "imageUrl": "https://picsum.photos/seed/28/600/400",
       "imageHint": "chocolate bonbon"
     }
   ]
