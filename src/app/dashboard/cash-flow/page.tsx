@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { CandleStickChart } from 'lucide-react';
+import { CandlestickChart } from 'lucide-react';
 
 export default function CashFlowPage() {
   return (
@@ -19,7 +19,7 @@ export default function CashFlowPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center text-center p-12">
-          <CandleStickChart className="w-16 h-16 text-muted-foreground mb-4" />
+          <CandlestickChart className="w-16 h-16 text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold">Em Construção</h3>
           <p className="text-muted-foreground mt-2">
             Esta seção está sendo desenvolvida e estará disponível em breve.
