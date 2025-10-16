@@ -18,10 +18,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
   Legend,
   ResponsiveContainer,
@@ -36,7 +35,6 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Trash2,
-  Archive,
 } from 'lucide-react';
 import {
   Select,
@@ -179,12 +177,12 @@ export default function CashFlowPage() {
   const netProfit = totalIncome - totalExpense;
 
   const chartData = [
-    {
-      name: selectedMonth,
-      entradas: totalIncome,
-      gastos: totalExpense,
-    },
+    { name: 'Entradas', value: totalIncome },
+    { name: 'Gastos', value: totalExpense },
   ];
+
+  const COLORS = ['#22c55e', '#ef4444'];
+
 
   return (
     <div className="space-y-6">
@@ -335,18 +333,28 @@ export default function CashFlowPage() {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Comparativo Mensal</CardTitle>
+              <CardTitle>Visão Geral do Mês</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData}>
-                  <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
                   <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                   <Legend />
-                  <Bar dataKey="entradas" fill="#22c55e" name="Entradas" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="gastos" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
