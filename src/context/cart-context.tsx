@@ -11,6 +11,9 @@ export interface CartItem extends Sweet {
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (item: Sweet) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  removeFromCart: (itemId: string) => void;
+  clearCart: () => void;
   addToCartAndGoToCart: (item: Sweet) => void;
   cartItemCount: number;
 }
@@ -32,6 +35,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prevItems, { ...item, quantity: 1 }];
     });
   };
+  
+  const updateQuantity = (itemId: string, quantity: number) => {
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId ? { ...item, quantity: Math.max(0, quantity) } : item
+      ).filter(item => item.quantity > 0)
+    );
+  };
+
+  const removeFromCart = (itemId: string) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  };
+  
+  const clearCart = () => {
+    setCartItems([]);
+  };
 
   const addToCartAndGoToCart = (item: Sweet) => {
     addToCart(item);
@@ -45,7 +64,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ cartItems, addToCart, addToCartAndGoToCart, cartItemCount }}
+      value={{ cartItems, addToCart, updateQuantity, removeFromCart, clearCart, addToCartAndGoToCart, cartItemCount }}
     >
       {children}
     </CartContext.Provider>

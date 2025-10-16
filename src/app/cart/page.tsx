@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import {
   Card,
@@ -10,26 +11,57 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, Trash2, Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 
 export default function CartPage() {
-  const { cartItems } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [selectedItems, setSelectedItems] = useState<string[]>(
+    cartItems.map((item) => item.id)
+  );
 
-  const total = cartItems.reduce(
+  const handleSelectItem = (itemId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedItems([...selectedItems, itemId]);
+    } else {
+      setSelectedItems(selectedItems.filter((id) => id !== itemId));
+    }
+  };
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedItems(cartItems.map((item) => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+  
+  const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id));
+
+  const total = selectedCartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold font-headline">Meu Carrinho</h1>
-        <p className="text-muted-foreground mt-2">
-          Revise os itens do seu pedido antes de finalizar a compra.
-        </p>
+      <header className="flex justify-between items-center">
+        <div>
+            <h1 className="text-3xl font-bold font-headline">Meu Carrinho</h1>
+            <p className="text-muted-foreground mt-2">
+              Revise os itens do seu pedido antes de finalizar a compra.
+            </p>
+        </div>
+        {cartItems.length > 0 && (
+          <Button variant="outline" onClick={clearCart}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Limpar Carrinho
+          </Button>
+        )}
       </header>
 
       {cartItems.length === 0 ? (
@@ -45,12 +77,28 @@ export default function CartPage() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between pb-4 border-b">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="selectAll"
+                        checked={selectedItems.length === cartItems.length && cartItems.length > 0}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                    />
+                    <label htmlFor="selectAll" className="text-sm font-medium">Selecionar todos</label>
+                </div>
+              </div>
             {cartItems.map((item) => {
               const placeholder = PlaceHolderImages.find(
                 (p) => p.id === item.image
               ) as ImagePlaceholder;
               return (
                 <Card key={item.id} className="flex items-center gap-4 p-4">
+                  <Checkbox
+                    checked={selectedItems.includes(item.id)}
+                    onCheckedChange={(checked) =>
+                      handleSelectItem(item.id, checked as boolean)
+                    }
+                  />
                   <div className="relative h-24 w-24 rounded-md overflow-hidden">
                     <Image
                       src={placeholder.imageUrl}
@@ -62,16 +110,32 @@ export default function CartPage() {
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-semibold">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Quantidade: {item.quantity}
-                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        className="h-8 w-14 text-center"
+                        value={item.quantity}
+                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                      />
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="font-semibold">
-                    {(item.price * item.quantity).toLocaleString('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    })}
-                  </p>
+                   <div className="flex flex-col items-end gap-2">
+                    <p className="font-semibold">
+                      {(item.price * item.quantity).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })}
+                    </p>
+                    <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </Card>
               );
             })}
@@ -87,7 +151,7 @@ export default function CartPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Subtotal ({selectedCartItems.length} {selectedCartItems.length === 1 ? 'item' : 'itens'})</span>
                   <span>
                     {total.toLocaleString('pt-BR', {
                       style: 'currency',
@@ -110,7 +174,7 @@ export default function CartPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Finalizar Compra</Button>
+                <Button className="w-full" disabled={selectedItems.length === 0}>Finalizar Compra</Button>
               </CardFooter>
             </Card>
           </div>
