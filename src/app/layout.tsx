@@ -8,6 +8,7 @@ import {
 import { MainNav } from '@/components/main-nav';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
+import { CartProvider } from '@/context/cart-context';
 
 export const metadata: Metadata = {
   title: "Angel's Sweets Emporium",
@@ -34,15 +35,17 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider>
-          <Sidebar>
-            <MainNav />
-          </Sidebar>
-          <SidebarInset>
-            <Header />
-            <main className="p-4 lg:p-6">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
+        <CartProvider>
+          <SidebarProvider>
+            <Sidebar>
+              <MainNav />
+            </Sidebar>
+            <SidebarInset>
+              <Header />
+              <main className="p-4 lg:p-6">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        </CartProvider>
         <Toaster />
       </body>
     </html>

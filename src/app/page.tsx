@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,9 +14,11 @@ import { Button } from '@/components/ui/button';
 import { sweets } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
-import { Separator } from '@/components/ui/separator';
+import { ShoppingCart } from 'lucide-react';
+import { useCart } from '@/context/cart-context';
 
 function ProductCard({ sweet }: { sweet: (typeof sweets)[0] }) {
+  const { addToCartAndGoToCart } = useCart();
   const placeholder = PlaceHolderImages.find(
     (p) => p.id === sweet.image
   ) as ImagePlaceholder;
@@ -50,7 +54,9 @@ function ProductCard({ sweet }: { sweet: (typeof sweets)[0] }) {
             currency: 'BRL',
           })}
         </p>
-        <Button>Fazer Pedido</Button>
+        <Button onClick={() => addToCartAndGoToCart(sweet)} size="icon" aria-label="Adicionar ao carrinho">
+          <ShoppingCart />
+        </Button>
       </CardFooter>
     </Card>
   );

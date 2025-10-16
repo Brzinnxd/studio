@@ -8,6 +8,7 @@ import {
   LineChart,
   Package,
   ShoppingBag,
+  ShoppingCart,
   Users,
 } from 'lucide-react';
 
@@ -20,11 +21,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from '@/components/ui/sidebar';
 import { Separator } from './ui/separator';
+import { useCart } from '@/context/cart-context';
 
 export function MainNav() {
   const pathname = usePathname();
+  const { cartItemCount } = useCart();
 
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
@@ -47,6 +51,19 @@ export function MainNav() {
               <Link href="/">
                 <BookMarked />
                 <span>Catálogo</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive('/cart')}
+              tooltip="Carrinho"
+            >
+              <Link href="/cart">
+                <ShoppingCart />
+                <span>Carrinho</span>
+                {cartItemCount > 0 && <SidebarMenuBadge>{cartItemCount}</SidebarMenuBadge>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
