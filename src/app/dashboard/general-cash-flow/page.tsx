@@ -31,6 +31,8 @@ import {
   DollarSign,
   ArrowUpCircle,
   ArrowDownCircle,
+  Briefcase,
+  User,
 } from 'lucide-react';
 import {
   Select,
@@ -39,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 type Transaction = {
   id: string;
@@ -69,6 +72,10 @@ export default function GeneralCashFlowPage() {
     const [allMonthlyReports, setAllMonthlyReports] = useState<MonthlyReport[]>([]);
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
     const [chartData, setChartData] = useState<any[]>([]);
+    const [businessIncome, setBusinessIncome] = useState(0);
+    const [businessExpense, setBusinessExpense] = useState(0);
+    const [personalIncome, setPersonalIncome] = useState(0);
+    const [personalExpense, setPersonalExpense] = useState(0);
 
 
   useEffect(() => {
@@ -120,15 +127,20 @@ export default function GeneralCashFlowPage() {
     }
     setAllMonthlyReports(reports);
 
-    // Prepare data for bar chart
-    const businessIncome = currentBusinessTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const businessExpense = currentBusinessTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const personalIncome = currentPersonalTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const personalExpense = currentPersonalTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    // Prepare data for bar chart and cards
+    const busIncome = currentBusinessTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const busExpense = currentBusinessTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const persIncome = currentPersonalTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const persExpense = currentPersonalTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+    setBusinessIncome(busIncome);
+    setBusinessExpense(busExpense);
+    setPersonalIncome(persIncome);
+    setPersonalExpense(persExpense);
 
     setChartData([
-        { name: 'Empresarial', Entradas: businessIncome, Gastos: businessExpense },
-        { name: 'Pessoal', Entradas: personalIncome, Gastos: personalExpense },
+        { name: 'Empresarial', Entradas: busIncome, Gastos: busExpense },
+        { name: 'Pessoal', Entradas: persIncome, Gastos: persExpense },
     ]);
 
 
@@ -136,17 +148,11 @@ export default function GeneralCashFlowPage() {
   
   const displayedTransactions = allTransactions;
 
-  const totalIncome = displayedTransactions
-    .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
-
-  const totalExpense = displayedTransactions
-    .filter((t) => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
-
+  const totalIncome = businessIncome + personalIncome;
+  const totalExpense = businessExpense + personalExpense;
   const netProfit = totalIncome - totalExpense;
   
-  const uniqueMonths = [...new Set(allMonthlyReports.map(r => r.month))];
+  const uniqueMonths = [...new Set(allMonthlyReports.map(r => r.month))].sort().reverse();
 
 
   return (
@@ -180,13 +186,24 @@ export default function GeneralCashFlowPage() {
                 </CardTitle>
                 <ArrowUpCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalIncome.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}
-                </div>
+                <CardContent className="space-y-2">
+                    <div className="text-2xl font-bold">
+                    {totalIncome.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                    })}
+                    </div>
+                    <Separator />
+                    <div className="text-xs text-muted-foreground space-y-1">
+                        <div className='flex justify-between items-center'>
+                            <span className='flex items-center gap-1'><Briefcase className='h-3 w-3'/> Empresarial</span>
+                            <span>{businessIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
+                        </div>
+                        <div className='flex justify-between items-center'>
+                            <span className='flex items-center gap-1'><User className='h-3 w-3'/> Pessoal</span>
+                            <span>{personalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
+                        </div>
+                    </div>
               </CardContent>
             </Card>
             <Card>
@@ -196,13 +213,24 @@ export default function GeneralCashFlowPage() {
                 </CardTitle>
                 <ArrowDownCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="space-y-2">
+                 <div className="text-2xl font-bold">
                   {totalExpense.toLocaleString('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                   })}
                 </div>
+                 <Separator />
+                    <div className="text-xs text-muted-foreground space-y-1">
+                        <div className='flex justify-between items-center'>
+                            <span className='flex items-center gap-1'><Briefcase className='h-3 w-3'/> Empresarial</span>
+                            <span>{businessExpense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
+                        </div>
+                        <div className='flex justify-between items-center'>
+                            <span className='flex items-center gap-1'><User className='h-3 w-3'/> Pessoal</span>
+                            <span>{personalExpense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
+                        </div>
+                    </div>
               </CardContent>
             </Card>
             <Card>
@@ -221,6 +249,9 @@ export default function GeneralCashFlowPage() {
                     currency: 'BRL',
                   })}
                 </div>
+                 <p className="text-xs text-muted-foreground pt-2">
+                    O balanço consolidado de suas finanças.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -299,3 +330,5 @@ export default function GeneralCashFlowPage() {
     </div>
   );
 }
+
+    
