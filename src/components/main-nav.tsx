@@ -23,16 +23,25 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
 } from '@/components/ui/sidebar';
 import { Separator } from './ui/separator';
 import { useCart } from '@/context/cart-context';
+import { useState } from 'react';
 
 export function MainNav() {
   const pathname = usePathname();
   const { cartItemCount } = useCart();
+  const [isCashFlowOpen, setIsCashFlowOpen] = useState(
+    pathname.includes('/dashboard/cash-flow')
+  );
 
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
+    if (path.endsWith('/dashboard/cash-flow'))
+      return pathname === '/dashboard/cash-flow';
     return pathname.startsWith(path);
   };
 
@@ -64,7 +73,9 @@ export function MainNav() {
               <Link href="/cart">
                 <ShoppingCart />
                 <span>Carrinho</span>
-                {cartItemCount > 0 && <SidebarMenuBadge>{cartItemCount}</SidebarMenuBadge>}
+                {cartItemCount > 0 && (
+                  <SidebarMenuBadge>{cartItemCount}</SidebarMenuBadge>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -76,7 +87,7 @@ export function MainNav() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={isActive('/dashboard')}
+                isActive={isActive('/dashboard') && pathname.split('/').length === 2}
                 tooltip="Dashboard"
               >
                 <Link href="/dashboard">
@@ -134,17 +145,40 @@ export function MainNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive('/dashboard/cash-flow')}
-                  tooltip="Fluxo de Caixa"
-                >
-                  <Link href="/dashboard/cash-flow">
+              <Collapsible open={isCashFlowOpen} onOpenChange={setIsCashFlowOpen}>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    variant="ghost"
+                    className="w-full justify-start"
+                    isActive={isActive('/dashboard/cash-flow')}
+                    tooltip="Fluxo de Caixa"
+                  >
                     <CandlestickChart />
                     <span>Fluxo de Caixa</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-8 space-y-1">
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    isActive={isActive('/dashboard/cash-flow')}
+                  >
+                    <Link href="/dashboard/cash-flow">Empresarial</Link>
+                  </SidebarMenuButton>
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    isActive={isActive('/dashboard/personal-cash-flow')}
+                  >
+                    <Link href="/dashboard/personal-cash-flow">
+                      Pessoal
+                    </Link>
+                  </SidebarMenuButton>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

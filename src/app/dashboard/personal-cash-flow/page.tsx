@@ -70,7 +70,7 @@ const getCurrentMonthKey = () => {
     .padStart(2, '0')}`;
 };
 
-export default function CashFlowPage() {
+export default function PersonalCashFlowPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
@@ -78,14 +78,13 @@ export default function CashFlowPage() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
-  const [category, setCategory] = useState<'business' | 'personal'>('business');
 
 
   useEffect(() => {
     // --- Load data from localStorage on component mount ---
-    const storedReports = localStorage.getItem('monthlyReports');
-    const storedTransactions = localStorage.getItem('transactions');
-    const lastProcessedMonth = localStorage.getItem('lastProcessedMonth');
+    const storedReports = localStorage.getItem('personalMonthlyReports');
+    const storedTransactions = localStorage.getItem('personalTransactions');
+    const lastProcessedMonth = localStorage.getItem('personalLastProcessedMonth');
     const currentMonth = getCurrentMonthKey();
 
     const reports: MonthlyReport[] = storedReports
@@ -130,14 +129,14 @@ export default function CashFlowPage() {
 
     setTransactions(currentTransactions);
     setMonthlyReports(reports);
-    localStorage.setItem('transactions', JSON.stringify(currentTransactions));
-    localStorage.setItem('monthlyReports', JSON.stringify(reports));
-    localStorage.setItem('lastProcessedMonth', currentMonth);
+    localStorage.setItem('personalTransactions', JSON.stringify(currentTransactions));
+    localStorage.setItem('personalMonthlyReports', JSON.stringify(reports));
+    localStorage.setItem('personalLastProcessedMonth', currentMonth);
   }, []);
   
   useEffect(() => {
     // --- Save transactions to localStorage whenever they change ---
-    localStorage.setItem('transactions', JSON.stringify(transactions));
+    localStorage.setItem('personalTransactions', JSON.stringify(transactions));
   }, [transactions]);
 
 
@@ -190,7 +189,7 @@ export default function CashFlowPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Fluxo de Caixa Empresarial</h1>
+        <h1 className="text-3xl font-bold font-headline">Fluxo de Caixa Pessoal</h1>
          <div className="flex items-center gap-4">
           <Label>Ver Relatório</Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -225,7 +224,7 @@ export default function CashFlowPage() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Venda de bolo"
+                  placeholder="Ex: Salário"
                   required
                   disabled={selectedMonth !== getCurrentMonthKey()}
                 />
@@ -236,7 +235,7 @@ export default function CashFlowPage() {
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Bolo de chocolate para festa"
+                  placeholder="Ex: Pagamento mensal"
                   disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
@@ -252,47 +251,25 @@ export default function CashFlowPage() {
                   disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <RadioGroup
-                    value={type}
-                    onValueChange={(value) =>
-                      setType(value as 'income' | 'expense')
-                    }
-                    className="flex gap-4"
-                    disabled={selectedMonth !== getCurrentMonthKey()}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="income" id="income" />
-                      <Label htmlFor="income">Entrada</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="expense" id="expense" />
-                      <Label htmlFor="expense">Gasto</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-2">
-                  <Label>Categoria</Label>
-                   <RadioGroup
-                    value={category}
-                    onValueChange={(value) =>
-                      setCategory(value as 'business' | 'personal')
-                    }
-                    className="flex gap-4"
-                    disabled={selectedMonth !== getCurrentMonthKey()}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="business" id="business" />
-                      <Label htmlFor="business">Empresarial</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="personal" id="personal" />
-                      <Label htmlFor="personal">Pessoal</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <RadioGroup
+                  value={type}
+                  onValueChange={(value) =>
+                    setType(value as 'income' | 'expense')
+                  }
+                  className="flex gap-4"
+                  disabled={selectedMonth !== getCurrentMonthKey()}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="income" id="income" />
+                    <Label htmlFor="income">Entrada</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="expense" id="expense" />
+                    <Label htmlFor="expense">Gasto</Label>
+                  </div>
+                </RadioGroup>
               </div>
             </CardContent>
             <CardFooter>
@@ -339,7 +316,7 @@ export default function CashFlowPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
+                <CardTitle className="text-sm font-medium">Saldo Líquido</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -441,3 +418,4 @@ export default function CashFlowPage() {
       </Card>
     </div>
   );
+}
