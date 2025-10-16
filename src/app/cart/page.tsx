@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 
@@ -52,7 +53,7 @@ export default function CartPage() {
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.value = '';
+    e.target.select();
   };
   
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>, itemId: string) => {
@@ -160,7 +161,7 @@ export default function CartPage() {
                       <Input
                         type="text"
                         className="h-8 w-12 text-center border-0 focus-visible:ring-0 p-0"
-                        defaultValue={item.quantity}
+                        value={item.quantity}
                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                         onFocus={handleFocus}
                         onBlur={(e) => handleBlur(e, item.id)}
@@ -231,8 +232,8 @@ export default function CartPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" disabled={selectedItems.length === 0}>
-                  Finalizar Compra
+                 <Button className="w-full" disabled={selectedItems.length === 0} asChild>
+                    <Link href="/checkout">Finalizar Compra</Link>
                 </Button>
               </CardFooter>
             </Card>
