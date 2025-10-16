@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { sweets as initialSweets, type Sweet } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
-import { ShoppingCart, Pencil } from 'lucide-react';
+import { ShoppingCart, Pencil, Upload } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 import {
   Dialog,
@@ -30,19 +30,36 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+type DisplaySweet = Sweet & { newImageUrl?: string };
 
 function ProductCard({
   sweet,
   onEdit,
 }: {
-  sweet: Sweet;
+  sweet: DisplaySweet;
   onEdit: (sweet: Sweet) => void;
 }) {
   const { addToCart } = useCart();
   const { toast } = useToast();
-  const placeholder = PlaceHolderImages.find(
-    (p) => p.id === sweet.image
-  ) as ImagePlaceholder;
+  
+  let imageUrl: string;
+  let imageAlt: string;
+  let imageHint: string | undefined;
+
+  if (sweet.newImageUrl) {
+    imageUrl = sweet.newImageUrl;
+    imageAlt = sweet.name;
+  } else {
+    const placeholder = PlaceHolderImages.find(
+      (p) => p.id === sweet.image
+    ) as ImagePlaceholder;
+    imageUrl = placeholder.imageUrl;
+    imageAlt = placeholder.description;
+    imageHint = placeholder.imageHint;
+  }
+  
 
   const handleAddToCart = () => {
     addToCart(sweet);
@@ -56,13 +73,13 @@ function ProductCard({
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
         <div className="relative aspect-[3/2] w-full">
-          {placeholder && (
+          {imageUrl && (
             <Image
-              src={placeholder.imageUrl}
-              alt={placeholder.description}
+              src={imageUrl}
+              alt={imageAlt}
               fill
               className="object-cover"
-              data-ai-hint={placeholder.imageHint}
+              data-ai-hint={imageHint}
             />
           )}
         </div>
@@ -113,12 +130,13 @@ function EditProductModal({
   onClose,
   onSave,
 }: {
-  sweet: Sweet | null;
+  sweet: DisplaySweet | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedSweet: Sweet) => void;
+  onSave: (updatedSweet: DisplaySweet) => void;
 }) {
-  const [editedSweet, setEditedSweet] = useState<Sweet | null>(sweet);
+  const [editedSweet, setEditedSweet] = useState<DisplaySweet | null>(sweet);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setEditedSweet(sweet);
@@ -127,15 +145,34 @@ function EditProductModal({
   if (!isOpen || !editedSweet) {
     return null;
   }
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedSweet({ ...editedSweet, newImageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = () => {
     onSave(editedSweet);
     onClose();
   };
+  
+  let imageUrl = editedSweet.newImageUrl;
+  if (!imageUrl) {
+     const placeholder = PlaceHolderImages.find(p => p.id === editedSweet.image);
+     if(placeholder) {
+        imageUrl = placeholder.imageUrl;
+     }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Editar Produto</DialogTitle>
           <DialogDescription>
@@ -143,49 +180,73 @@ function EditProductModal({
             terminar.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Nome
-            </Label>
-            <Input
-              id="name"
-              value={editedSweet.name}
-              onChange={(e) =>
-                setEditedSweet({ ...editedSweet, name: e.target.value })
-              }
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Descrição
-            </Label>
-            <Textarea
-              id="description"
-              value={editedSweet.description}
-              onChange={(e) =>
-                setEditedSweet({ ...editedSweet, description: e.target.value })
-              }
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="price" className="text-right">
-              Preço
-            </Label>
-            <Input
-              id="price"
-              type="number"
-              value={editedSweet.price}
-              onChange={(e) =>
-                setEditedSweet({
-                  ...editedSweet,
-                  price: parseFloat(e.target.value) || 0,
-                })
-              }
-              className="col-span-3"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            <div className="space-y-4">
+                <div className="relative aspect-[3/2] w-full rounded-md overflow-hidden border">
+                    {imageUrl ? (
+                        <Image src={imageUrl} alt="Pré-visualização do produto" fill className="object-cover" />
+                    ) : (
+                        <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
+                            Sem imagem
+                        </div>
+                    )}
+                </div>
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                />
+                <Button variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Alterar Imagem
+                </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Nome
+                </Label>
+                <Input
+                  id="name"
+                  value={editedSweet.name}
+                  onChange={(e) =>
+                    setEditedSweet({ ...editedSweet, name: e.target.value })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Descrição
+                </Label>
+                <Textarea
+                  id="description"
+                  value={editedSweet.description}
+                  onChange={(e) =>
+                    setEditedSweet({ ...editedSweet, description: e.target.value })
+                  }
+                  className="col-span-3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">
+                  Preço
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={editedSweet.price}
+                  onChange={(e) =>
+                    setEditedSweet({
+                      ...editedSweet,
+                      price: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="col-span-3"
+                />
+              </div>
           </div>
         </div>
         <DialogFooter>
@@ -201,11 +262,11 @@ function EditProductModal({
 
 
 export default function CatalogPage() {
-  const [sweets, setSweets] = useState<Sweet[]>(initialSweets);
-  const [editingSweet, setEditingSweet] = useState<Sweet | null>(null);
+  const [sweets, setSweets] = useState<DisplaySweet[]>(initialSweets.map(s => ({...s})));
+  const [editingSweet, setEditingSweet] = useState<DisplaySweet | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleEditClick = (sweet: Sweet) => {
+  const handleEditClick = (sweet: DisplaySweet) => {
     setEditingSweet(sweet);
     setIsModalOpen(true);
   };
@@ -215,7 +276,7 @@ export default function CatalogPage() {
     setEditingSweet(null);
   };
 
-  const handleSaveSweet = (updatedSweet: Sweet) => {
+  const handleSaveSweet = (updatedSweet: DisplaySweet) => {
     setSweets(currentSweets => 
       currentSweets.map(s => s.id === updatedSweet.id ? updatedSweet : s)
     );
