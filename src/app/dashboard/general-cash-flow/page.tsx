@@ -261,9 +261,9 @@ export default function GeneralCashFlowPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData}>
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(value) => `R$${value}`} />
+                <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
+                    <XAxis type="number" tickFormatter={(value) => `R$${value/1000}k`} />
+                    <YAxis type="category" dataKey="name" />
                     <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                     <Legend />
                     <Bar dataKey="Entradas" fill="#22c55e" />
@@ -330,5 +330,3 @@ export default function GeneralCashFlowPage() {
     </div>
   );
 }
-
-    
