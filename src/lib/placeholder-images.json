@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "bala-baiana",
+      "description": "A plate of classic Balas Baianas",
+      "imageUrl": "https://picsum.photos/seed/1/600/400",
+      "imageHint": "caramel candy"
+    },
+    {
+      "id": "brigadeiro",
+      "description": "Chocolate brigadeiros with sprinkles",
+      "imageUrl": "https://picsum.photos/seed/2/600/400",
+      "imageHint": "chocolate truffles"
+    },
+    {
+      "id": "beijinho",
+      "description": "Coconut beijinhos with a clove on top",
+      "imageUrl": "https://picsum.photos/seed/3/600/400",
+      "imageHint": "coconut sweets"
+    },
+    {
+      "id": "quindim",
+      "description": "A shiny yellow quindim",
+      "imageUrl": "https://picsum.photos/seed/4/600/400",
+      "imageHint": "custard dessert"
+    },
+    {
+      "id": "pave",
+      "description": "A slice of chocolate pave dessert",
+      "imageUrl": "https://picsum.photos/seed/5/600/400",
+      "imageHint": "chocolate trifle"
+    },
+    {
+      "id": "bolo-de-pote",
+      "description": "A cake in a jar",
+      "imageUrl": "https://picsum.photos/seed/6/600/400",
+      "imageHint": "jar cake"
+    },
+    {
+      "id": "brownie",
+      "description": "A piece of fudgy brownie",
+      "imageUrl": "https://picsum.photos/seed/7/600/400",
+      "imageHint": "chocolate brownie"
+    },
+    {
+      "id": "palha-italiana",
+      "description": "Squares of Palha Italiana",
+      "imageUrl": "https://picsum.photos/seed/8/600/400",
+      "imageHint": "chocolate biscuit"
+    }
+  ]
 }
