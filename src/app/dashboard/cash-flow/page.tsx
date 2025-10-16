@@ -87,7 +87,7 @@ export default function CashFlowPage() {
     {
       name: 'Finanças',
       entradas: totalIncome,
-      saidas: totalExpense,
+      gastos: totalExpense,
     },
   ];
 
@@ -100,7 +100,7 @@ export default function CashFlowPage() {
           <CardHeader>
             <CardTitle>Adicionar Transação</CardTitle>
             <CardDescription>
-              Registre uma nova entrada ou saída.
+              Registre uma nova entrada ou gasto.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleAddTransaction}>
@@ -148,7 +148,7 @@ export default function CashFlowPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="expense" id="expense" />
-                    <Label htmlFor="expense">Saída</Label>
+                    <Label htmlFor="expense">Gasto</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -174,7 +174,7 @@ export default function CashFlowPage() {
              </Card>
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total de Saídas</CardTitle>
+                    <CardTitle className="text-sm font-medium">Total de Gastos</CardTitle>
                     <ArrowDownCircle className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent>
@@ -203,7 +203,7 @@ export default function CashFlowPage() {
                   <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                   <Legend />
                   <Bar dataKey="entradas" fill="#22c55e" name="Entradas" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="saidas" fill="#ef4444" name="Saídas" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="gastos" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -240,7 +240,7 @@ export default function CashFlowPage() {
                     <TableCell className="text-muted-foreground">{t.description}</TableCell>
                     <TableCell>
                       <Badge variant={t.type === 'income' ? 'default' : 'destructive'}>
-                        {t.type === 'income' ? 'Entrada' : 'Saída'}
+                        {t.type === 'income' ? 'Entrada' : 'Gasto'}
                       </Badge>
                     </TableCell>
                     <TableCell className={`text-right font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
