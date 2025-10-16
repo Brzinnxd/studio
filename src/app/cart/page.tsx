@@ -12,14 +12,8 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
@@ -43,6 +37,17 @@ export default function CartPage() {
       setSelectedItems(cartItems.map((item) => item.id));
     } else {
       setSelectedItems([]);
+    }
+  };
+
+  const handleQuantityChange = (itemId: string, value: string) => {
+    if (value === '') {
+      updateQuantity(itemId, 1); // Or some other logic for empty input
+    } else {
+      const newQuantity = parseInt(value, 10);
+      if (!isNaN(newQuantity) && newQuantity > 0) {
+        updateQuantity(itemId, newQuantity);
+      }
     }
   };
 
@@ -125,24 +130,35 @@ export default function CartPage() {
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-semibold">{item.name}</h4>
-                    <div className="w-24 mt-2">
-                      <Select
-                        value={item.quantity.toString()}
-                        onValueChange={(value) =>
-                          updateQuantity(item.id, parseInt(value))
-                        }
+                    <div className="flex items-center border rounded-md w-fit mt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Qtd" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...Array(10).keys()].map((i) => (
-                            <SelectItem key={i + 1} value={(i + 1).toString()}>
-                              {i + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="text"
+                        className="h-8 w-12 text-center border-0 focus-visible:ring-0 p-0"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                        onBlur={(e) => {
+                           if (e.target.value === '') {
+                               updateQuantity(item.id, 1);
+                           }
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
