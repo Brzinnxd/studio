@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { getTrendAnalysis, type State } from './actions';
 import { Lightbulb, TrendingUp } from 'lucide-react';
+import React from 'react';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -27,8 +28,13 @@ function SubmitButton() {
 export default function TrendsPage() {
   const initialState: State = {};
   const [state, dispatch] = useFormState(getTrendAnalysis, initialState);
+  const [salesData, setSalesData] = React.useState('');
 
   const exampleSalesData = `Exemplo de dados:\n- Pedido 1: Bala Baiana (2), Brigadeiro (4)\n- Pedido 2: Quindim (1), Beijinho (3)\n- Pedido 3: Bala Baiana (5)\n- Pedido 4: Brigadeiro (6), Beijinho (6)`;
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSalesData(e.target.value);
+  };
 
   return (
     <div className="space-y-6">
@@ -56,8 +62,9 @@ export default function TrendsPage() {
                 id="salesData"
                 name="salesData"
                 placeholder={exampleSalesData}
-                rows={8}
                 required
+                value={salesData}
+                onChange={handleTextChange}
               />
               {state?.message && state.message.includes('Invalid') && (
                  <p className="text-sm text-destructive">{state.message}</p>
