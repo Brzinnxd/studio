@@ -9,19 +9,19 @@
     {
       "id": "bolo-de-pote",
       "description": "A cake in a jar",
-      "imageUrl": "https://www.receiteria.com.br/wp-content/uploads/receitas-de-bolo-de-pote-de-brigadeiro-730x548.jpg",
+      "imageUrl": "https://essareceitafunciona.com.br/wp-content/uploads/2023/07/Bolo-de-pote-Essa-receita-funciona-2.jpg",
       "imageHint": "jar cake"
     },
     {
       "id": "cocada",
       "description": "Pieces of brazilian cocada",
-      "imageUrl": "https://www.receitasnestle.com.br/sites/default/files/srh_recipes/4f2d3d928b6d274530062f6b8b09b552.jpg",
+      "imageUrl": "https://www.curtamais.com.br/uploads/conteudos/822a7f5a-e71c-43f9-9069-455b5502c9a9.jpg",
       "imageHint": "coconut candy"
     },
     {
       "id": "pe-de-moleque",
       "description": "Brazilian peanut brittle called Pé de Moleque",
-      "imageUrl": "https://assets.delirec.com/images%2Ffotos-produco%2Fpe-de-moleque-crocante-e-macio.jpg",
+      "imageUrl": "https://www.acasaencantada.com.br/wp-content/uploads/2022/06/pe-de-moleque-crocante-e-macio.jpg",
       "imageHint": "peanut brittle"
     },
     {
@@ -45,13 +45,13 @@
     {
       "id": "espetinho-de-morango",
       "description": "A skewer of strawberries with chocolate",
-      "imageUrl": "https://pilotandofogao.com.br/wp-content/uploads/2016/09/Espetinho-de-Morango-com-Chocolate-e-Leite-em-Po.jpg",
+      "imageUrl": "https://receitinhas.com.br/wp-content/uploads/2023/01/espetinho-de-morango-com-chocolate-delicioso-2.jpg",
       "imageHint": "strawberry skewer"
     },
     {
       "id": "bombom-de-chocolate",
       "description": "A delicious chocolate bonbon",
-      "imageUrl": "https://www.receiteria.com.br/wp-content/uploads/receitas-de-bombom-de-morango.jpg",
+      "imageUrl": "https://claudia.abril.com.br/wp-content/uploads/2020/02/receita-bombom-de-morango.jpg",
       "imageHint": "chocolate bonbon"
     }
   ]
