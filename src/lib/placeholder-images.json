@@ -3,55 +3,55 @@
     {
       "id": "bala-baiana",
       "description": "A plate of classic Balas Baianas",
-      "imageUrl": "https://picsum.photos/seed/20/600/400",
+      "imageUrl": "https://i0.wp.com/porkworld.com.br/wp-content/uploads/2023/10/receita-de-bala-baiana-bala-de-vidro.jpg?fit=1279%2C719&ssl=1",
       "imageHint": "caramel candy"
     },
     {
       "id": "bolo-de-pote",
       "description": "A cake in a jar",
-      "imageUrl": "https://picsum.photos/seed/21/600/400",
+      "imageUrl": "https://www.receiteria.com.br/wp-content/uploads/receitas-de-bolo-de-pote-de-chocolate-00.jpg",
       "imageHint": "jar cake"
     },
     {
       "id": "cocada",
       "description": "Pieces of brazilian cocada",
-      "imageUrl": "https://picsum.photos/seed/22/600/400",
+      "imageUrl": "https://www.acucaruniao.com.br/wp-content/uploads/2020/01/cocada-cremosa-de-colher-e1654284560946.jpg",
       "imageHint": "coconut candy"
     },
     {
       "id": "pe-de-moleque",
       "description": "Brazilian peanut brittle called Pé de Moleque",
-      "imageUrl": "https://picsum.photos/seed/23/600/400",
+      "imageUrl": "https://classic.exame.com/wp-content/uploads/2023/06/Pe-de-moleque.jpg?quality=70&strip=info&w=1024",
       "imageHint": "peanut brittle"
     },
     {
       "id": "pe-de-moca",
       "description": "A softer, creamier version of Pé de Moleque",
-      "imageUrl": "https://picsum.photos/seed/24/600/400",
+      "imageUrl": "https://static.itdg.com.br/images/1200-630/9b472e04344d5f6e87f558117d3d191b/312011-original.jpg",
       "imageHint": "peanut candy"
     },
     {
       "id": "morango-do-amor",
       "description": "A candy apple-style strawberry",
-      "imageUrl": "https://picsum.photos/seed/25/600/400",
+      "imageUrl": "https://conteudo.imguol.com.br/c/entretenimento/d0/2024/05/17/maca-do-amor-de-morango-1715978144257_v2_4x3.jpg",
       "imageHint": "candy strawberry"
     },
     {
       "id": "mousse-de-maracuja",
       "description": "A passion fruit mousse",
-      "imageUrl": "https://picsum.photos/seed/26/600/400",
+      "imageUrl": "https://www.sabornamesa.com.br/media/k2/items/cache/0902337e7776bed01844578525345700_L.jpg",
       "imageHint": "passionfruit mousse"
     },
     {
       "id": "espetinho-de-morango",
       "description": "A skewer of strawberries with chocolate",
-      "imageUrl": "https://picsum.photos/seed/27/600/400",
+      "imageUrl": "https://img.elo7.com.br/product/main/265A162/espeto-de-morango-com-chocolate-espeto-de-morango.jpg",
       "imageHint": "strawberry skewer"
     },
     {
       "id": "bombom-de-chocolate",
       "description": "A delicious chocolate bonbon",
-      "imageUrl": "https://picsum.photos/seed/28/600/400",
+      "imageUrl": "https://anamariabraga.globo.com/wp-content/uploads/2023/09/bombom-de-morango-na-travessa-1024x576.jpg",
       "imageHint": "chocolate bonbon"
     }
   ]
