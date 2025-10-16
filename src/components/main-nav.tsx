@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Briefcase,
   User,
+  Combine,
 } from 'lucide-react';
 
 import { Logo } from '@/components/logo';
@@ -39,7 +40,7 @@ export function MainNav() {
   const pathname = usePathname();
   const { cartItemCount } = useCart();
   const [isCashFlowOpen, setIsCashFlowOpen] = useState(
-    pathname.includes('/dashboard/cash-flow') || pathname.includes('/dashboard/personal-cash-flow')
+    pathname.includes('/dashboard/cash-flow') || pathname.includes('/dashboard/personal-cash-flow') || pathname.includes('/dashboard/general-cash-flow')
   );
 
   const isActive = (path: string, exact: boolean = false) => {
@@ -47,7 +48,7 @@ export function MainNav() {
     return pathname.startsWith(path);
   };
   
-  const isCashFlowActive = isActive('/dashboard/cash-flow') || isActive('/dashboard/personal-cash-flow');
+  const isCashFlowActive = isActive('/dashboard/cash-flow') || isActive('/dashboard/personal-cash-flow') || isActive('/dashboard/general-cash-flow');
 
   return (
     <>
@@ -187,6 +188,18 @@ export function MainNav() {
                     <Link href="/dashboard/personal-cash-flow">
                       <User className="h-4 w-4" />
                       <span>Pessoal</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  <SidebarMenuButton
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    isActive={isActive('/dashboard/general-cash-flow')}
+                    className="w-full"
+                  >
+                    <Link href="/dashboard/general-cash-flow">
+                      <Combine className="h-4 w-4" />
+                      <span>Geral</span>
                     </Link>
                   </SidebarMenuButton>
                 </CollapsibleContent>
