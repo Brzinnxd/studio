@@ -7,46 +7,52 @@
       "imageHint": "caramel candy"
     },
     {
-      "id": "brigadeiro",
-      "description": "Chocolate brigadeiros with sprinkles",
-      "imageUrl": "https://picsum.photos/seed/2/600/400",
-      "imageHint": "chocolate truffles"
-    },
-    {
-      "id": "beijinho",
-      "description": "Coconut beijinhos with a clove on top",
-      "imageUrl": "https://picsum.photos/seed/3/600/400",
-      "imageHint": "coconut sweets"
-    },
-    {
-      "id": "quindim",
-      "description": "A shiny yellow quindim",
-      "imageUrl": "https://picsum.photos/seed/4/600/400",
-      "imageHint": "custard dessert"
-    },
-    {
-      "id": "pave",
-      "description": "A slice of chocolate pave dessert",
-      "imageUrl": "https://picsum.photos/seed/5/600/400",
-      "imageHint": "chocolate trifle"
-    },
-    {
       "id": "bolo-de-pote",
       "description": "A cake in a jar",
       "imageUrl": "https://picsum.photos/seed/6/600/400",
       "imageHint": "jar cake"
     },
     {
-      "id": "brownie",
-      "description": "A piece of fudgy brownie",
-      "imageUrl": "https://picsum.photos/seed/7/600/400",
-      "imageHint": "chocolate brownie"
+      "id": "cocada",
+      "description": "Pieces of brazilian cocada",
+      "imageUrl": "https://picsum.photos/seed/9/600/400",
+      "imageHint": "coconut candy"
     },
     {
-      "id": "palha-italiana",
-      "description": "Squares of Palha Italiana",
-      "imageUrl": "https://picsum.photos/seed/8/600/400",
-      "imageHint": "chocolate biscuit"
+      "id": "pe-de-moleque",
+      "description": "Brazilian peanut brittle called Pé de Moleque",
+      "imageUrl": "https://picsum.photos/seed/10/600/400",
+      "imageHint": "peanut brittle"
+    },
+    {
+      "id": "pe-de-moca",
+      "description": "A softer, creamier version of Pé de Moleque",
+      "imageUrl": "https://picsum.photos/seed/11/600/400",
+      "imageHint": "peanut candy"
+    },
+    {
+      "id": "morango-do-amor",
+      "description": "A candy apple-style strawberry",
+      "imageUrl": "https://picsum.photos/seed/12/600/400",
+      "imageHint": "candy strawberry"
+    },
+    {
+      "id": "mousse-de-maracuja",
+      "description": "A passion fruit mousse",
+      "imageUrl": "https://picsum.photos/seed/13/600/400",
+      "imageHint": "passionfruit mousse"
+    },
+    {
+      "id": "espetinho-de-morango",
+      "description": "A skewer of strawberries with chocolate",
+      "imageUrl": "https://picsum.photos/seed/14/600/400",
+      "imageHint": "strawberry skewer"
+    },
+    {
+      "id": "bombom-de-chocolate",
+      "description": "A delicious chocolate bonbon",
+      "imageUrl": "https://picsum.photos/seed/15/600/400",
+      "imageHint": "chocolate bonbon"
     }
   ]
 }

@@ -27,13 +27,15 @@ function ProductCard({ sweet }: { sweet: (typeof sweets)[0] }) {
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
         <div className="relative aspect-[3/2] w-full">
-          <Image
-            src={placeholder.imageUrl}
-            alt={placeholder.description}
-            fill
-            className="object-cover"
-            data-ai-hint={placeholder.imageHint}
-          />
+          {placeholder && (
+            <Image
+              src={placeholder.imageUrl}
+              alt={placeholder.description}
+              fill
+              className="object-cover"
+              data-ai-hint={placeholder.imageHint}
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4">
