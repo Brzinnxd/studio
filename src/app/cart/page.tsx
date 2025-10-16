@@ -42,12 +42,29 @@ export default function CartPage() {
 
   const handleQuantityChange = (itemId: string, value: string) => {
     if (value === '') {
-      updateQuantity(itemId, 1); // Or some other logic for empty input
+        // Do not update quantity when input is empty to allow user to type
     } else {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity > 0) {
         updateQuantity(itemId, newQuantity);
       }
+    }
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.value = '';
+  };
+  
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>, itemId: string) => {
+    if (e.target.value === '') {
+        updateQuantity(itemId, 1);
+    } else {
+        const newQuantity = parseInt(e.target.value, 10);
+        if (!isNaN(newQuantity) && newQuantity > 0) {
+            updateQuantity(itemId, newQuantity);
+        } else {
+            updateQuantity(itemId, 1);
+        }
     }
   };
 
@@ -143,13 +160,10 @@ export default function CartPage() {
                       <Input
                         type="text"
                         className="h-8 w-12 text-center border-0 focus-visible:ring-0 p-0"
-                        value={item.quantity}
+                        defaultValue={item.quantity}
                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        onBlur={(e) => {
-                           if (e.target.value === '') {
-                               updateQuantity(item.id, 1);
-                           }
-                        }}
+                        onFocus={handleFocus}
+                        onBlur={(e) => handleBlur(e, item.id)}
                       />
                       <Button
                         variant="ghost"
