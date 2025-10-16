@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BookMarked,
+  CandleStickChart,
   LayoutDashboard,
   LineChart,
   Package,
@@ -132,6 +133,18 @@ export function MainNav() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive('/dashboard/cash-flow')}
+                  tooltip="Fluxo de Caixa"
+                >
+                  <Link href="/dashboard/cash-flow">
+                    <CandleStickChart />
+                    <span>Fluxo de Caixa</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
