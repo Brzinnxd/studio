@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,6 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 function ProductCard({
   sweet,
@@ -37,10 +38,19 @@ function ProductCard({
   sweet: Sweet;
   onEdit: (sweet: Sweet) => void;
 }) {
-  const { addToCartAndGoToCart } = useCart();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   const placeholder = PlaceHolderImages.find(
     (p) => p.id === sweet.image
   ) as ImagePlaceholder;
+
+  const handleAddToCart = () => {
+    addToCart(sweet);
+    toast({
+      title: 'Produto adicionado!',
+      description: `${sweet.name} foi adicionado ao seu carrinho.`,
+    });
+  };
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -85,7 +95,7 @@ function ProductCard({
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
-            onClick={() => addToCartAndGoToCart(sweet)}
+            onClick={handleAddToCart}
             size="icon"
             aria-label="Adicionar ao carrinho"
           >

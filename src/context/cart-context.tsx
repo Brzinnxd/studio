@@ -10,6 +10,7 @@ export interface CartItem extends Sweet {
 
 interface CartContextType {
   cartItems: CartItem[];
+  addToCart: (item: Sweet) => void;
   addToCartAndGoToCart: (item: Sweet) => void;
   cartItemCount: number;
 }
@@ -20,7 +21,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const router = useRouter();
 
-  const addToCartAndGoToCart = (item: Sweet) => {
+  const addToCart = (item: Sweet) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.id === item.id);
       if (existingItem) {
@@ -30,6 +31,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prevItems, { ...item, quantity: 1 }];
     });
+  };
+
+  const addToCartAndGoToCart = (item: Sweet) => {
+    addToCart(item);
     router.push('/cart');
   };
 
@@ -39,7 +44,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCartAndGoToCart, cartItemCount }}>
+    <CartContext.Provider
+      value={{ cartItems, addToCart, addToCartAndGoToCart, cartItemCount }}
+    >
       {children}
     </CartContext.Provider>
   );
