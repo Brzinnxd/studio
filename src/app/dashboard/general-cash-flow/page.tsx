@@ -17,9 +17,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   Tooltip,
   Legend,
   ResponsiveContainer,
@@ -67,6 +68,7 @@ export default function GeneralCashFlowPage() {
     const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
     const [allMonthlyReports, setAllMonthlyReports] = useState<MonthlyReport[]>([]);
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
+    const [chartData, setChartData] = useState<any[]>([]);
 
 
   useEffect(() => {
@@ -81,7 +83,12 @@ export default function GeneralCashFlowPage() {
     const personalReports: MonthlyReport[] = storedPersonalReports ? JSON.parse(storedPersonalReports) : [];
     const personalTransactions: Transaction[] = storedPersonalTransactions ? JSON.parse(storedPersonalTransactions) : [];
 
-    const combinedTransactions = [...businessTransactions, ...personalTransactions].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const isCurrentMonth = selectedMonth === getCurrentMonthKey();
+
+    const currentBusinessTxs = isCurrentMonth ? businessTransactions : businessReports.find(r => r.month === selectedMonth)?.transactions || [];
+    const currentPersonalTxs = isCurrentMonth ? personalTransactions : personalReports.find(r => r.month === selectedMonth)?.transactions || [];
+    
+    const combinedTransactions = [...currentBusinessTxs, ...currentPersonalTxs].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     setAllTransactions(combinedTransactions);
 
     const combinedReportsMap = new Map<string, MonthlyReport>();
@@ -98,14 +105,36 @@ export default function GeneralCashFlowPage() {
             combinedReportsMap.set(report.month, { ...report });
         }
     });
+    
+    const reports = Array.from(combinedReportsMap.values());
+    if (isCurrentMonth) {
+        const currentMonthReport = reports.find(r => r.month === getCurrentMonthKey());
+        if (!currentMonthReport) {
+             const currentMonthTotalIncome = combinedTransactions
+                .filter((t) => t.type === 'income')
+                .reduce((acc, t) => acc + t.amount, 0);
+              const currentMonthTotalExpense = combinedTransactions
+                .filter((t) => t.type === 'expense')
+                .reduce((acc, t) => acc + t.amount, 0);
+        }
+    }
+    setAllMonthlyReports(reports);
 
-    setAllMonthlyReports(Array.from(combinedReportsMap.values()));
+    // Prepare data for bar chart
+    const businessIncome = currentBusinessTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const businessExpense = currentBusinessTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const personalIncome = currentPersonalTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const personalExpense = currentPersonalTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+    setChartData([
+        { name: 'Empresarial', Entradas: businessIncome, Gastos: businessExpense },
+        { name: 'Pessoal', Entradas: personalIncome, Gastos: personalExpense },
+    ]);
+
 
   }, [selectedMonth]);
   
-  const displayedTransactions = selectedMonth === getCurrentMonthKey() 
-    ? allTransactions 
-    : allMonthlyReports.find(r => r.month === selectedMonth)?.transactions || [];
+  const displayedTransactions = allTransactions;
 
   const totalIncome = displayedTransactions
     .filter((t) => t.type === 'income')
@@ -116,13 +145,6 @@ export default function GeneralCashFlowPage() {
     .reduce((acc, t) => acc + t.amount, 0);
 
   const netProfit = totalIncome - totalExpense;
-
-  const chartData = [
-    { name: 'Entradas', value: totalIncome },
-    { name: 'Gastos', value: totalExpense },
-  ];
-
-  const COLORS = ['#22c55e', '#ef4444'];
   
   const uniqueMonths = [...new Set(allMonthlyReports.map(r => r.month))];
 
@@ -208,24 +230,14 @@ export default function GeneralCashFlowPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
-                  <Legend />
-                </PieChart>
+                <BarChart data={chartData}>
+                    <XAxis dataKey="name" />
+                    <YAxis tickFormatter={(value) => `R$${value}`} />
+                    <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+                    <Legend />
+                    <Bar dataKey="Entradas" fill="#22c55e" />
+                    <Bar dataKey="Gastos" fill="#ef4444" />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
