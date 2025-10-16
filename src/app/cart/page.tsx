@@ -12,8 +12,14 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { ShoppingCart, Trash2, Minus, Plus } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
@@ -39,8 +45,10 @@ export default function CartPage() {
       setSelectedItems([]);
     }
   };
-  
-  const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.id));
+
+  const selectedCartItems = cartItems.filter((item) =>
+    selectedItems.includes(item.id)
+  );
 
   const total = selectedCartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -51,10 +59,10 @@ export default function CartPage() {
     <div className="space-y-6">
       <header className="flex justify-between items-center">
         <div>
-            <h1 className="text-3xl font-bold font-headline">Meu Carrinho</h1>
-            <p className="text-muted-foreground mt-2">
-              Revise os itens do seu pedido antes de finalizar a compra.
-            </p>
+          <h1 className="text-3xl font-bold font-headline">Meu Carrinho</h1>
+          <p className="text-muted-foreground mt-2">
+            Revise os itens do seu pedido antes de finalizar a compra.
+          </p>
         </div>
         {cartItems.length > 0 && (
           <Button variant="outline" onClick={clearCart}>
@@ -77,16 +85,23 @@ export default function CartPage() {
       ) : (
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b">
-                <div className="flex items-center gap-2">
-                    <Checkbox
-                        id="selectAll"
-                        checked={selectedItems.length === cartItems.length && cartItems.length > 0}
-                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                    />
-                    <label htmlFor="selectAll" className="text-sm font-medium">Selecionar todos</label>
-                </div>
+            <div className="flex items-center justify-between pb-4 border-b">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="selectAll"
+                  checked={
+                    selectedItems.length === cartItems.length &&
+                    cartItems.length > 0
+                  }
+                  onCheckedChange={(checked) =>
+                    handleSelectAll(checked as boolean)
+                  }
+                />
+                <label htmlFor="selectAll" className="text-sm font-medium">
+                  Selecionar todos
+                </label>
               </div>
+            </div>
             {cartItems.map((item) => {
               const placeholder = PlaceHolderImages.find(
                 (p) => p.id === item.image
@@ -110,30 +125,39 @@ export default function CartPage() {
                   </div>
                   <div className="flex-grow">
                     <h4 className="font-semibold">{item.name}</h4>
-                    <div className="flex items-center gap-1 mt-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        className="h-8 w-14 text-center"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                      />
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                    <div className="w-24 mt-2">
+                      <Select
+                        value={item.quantity.toString()}
+                        onValueChange={(value) =>
+                          updateQuantity(item.id, parseInt(value))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Qtd" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[...Array(10).keys()].map((i) => (
+                            <SelectItem key={i + 1} value={(i + 1).toString()}>
+                              {i + 1}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                   <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-end gap-2">
                     <p className="font-semibold">
                       {(item.price * item.quantity).toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
                       })}
                     </p>
-                    <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </div>
                 </Card>
@@ -151,7 +175,10 @@ export default function CartPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Subtotal ({selectedCartItems.length} {selectedCartItems.length === 1 ? 'item' : 'itens'})</span>
+                  <span>
+                    Subtotal ({selectedCartItems.length}{' '}
+                    {selectedCartItems.length === 1 ? 'item' : 'itens'})
+                  </span>
                   <span>
                     {total.toLocaleString('pt-BR', {
                       style: 'currency',
@@ -174,7 +201,9 @@ export default function CartPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" disabled={selectedItems.length === 0}>Finalizar Compra</Button>
+                <Button className="w-full" disabled={selectedItems.length === 0}>
+                  Finalizar Compra
+                </Button>
               </CardFooter>
             </Card>
           </div>
