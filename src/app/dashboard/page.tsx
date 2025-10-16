@@ -8,7 +8,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DollarSign, Package, ShoppingBag, Users } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import {
   Table,
   TableBody,
@@ -23,43 +30,39 @@ const stats = [
   {
     title: 'Receita Total',
     value: 'R$ 45.231,89',
+    numericValue: 45231.89,
     change: '+20.1% do último mês',
     icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
   },
   {
     title: 'Pedidos',
     value: '+2350',
+    numericValue: 2350,
     change: '+180.1% do último mês',
     icon: <ShoppingBag className="h-4 w-4 text-muted-foreground" />,
   },
   {
     title: 'Novos Clientes',
     value: '+12.234',
+    numericValue: 12234,
     change: '+19% do último mês',
     icon: <Users className="h-4 w-4 text-muted-foreground" />,
   },
   {
     title: 'Produtos em Estoque',
     value: '573',
+    numericValue: 573,
     change: '+201 desde a última semana',
     icon: <Package className="h-4 w-4 text-muted-foreground" />,
   },
 ];
 
-const salesData = [
-  { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Fev', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Abr', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Mai', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jun', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jul', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Ago', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Set', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Out', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Nov', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Dez', total: Math.floor(Math.random() * 5000) + 1000 },
-];
+const pieChartData = stats.map((stat) => ({
+  name: stat.title,
+  value: stat.numericValue,
+}));
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const recentOrders = [
   {
@@ -110,31 +113,46 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Visão Geral de Vendas</CardTitle>
+            <CardTitle>Visão Geral das Estatísticas</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={salesData}>
-                <XAxis
-                  dataKey="name"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
+              <PieChart>
+                <Pie
+                  data={pieChartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                >
+                  {pieChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name === 'Receita Total') {
+                      return [
+                        (value as number).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }),
+                        name,
+                      ];
+                    }
+                    return [value, name];
+                  }}
                 />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `R$${value}`}
-                />
-                <Bar
-                  dataKey="total"
-                  fill="hsl(var(--primary))"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
