@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sweet } from '@/lib/data';
+import { Sweet } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 import { ShoppingCart, Pencil, Upload, Link as LinkIcon } from 'lucide-react';
@@ -53,18 +53,26 @@ function ProductCard({
   let imageAlt: string;
   let imageHint: string | undefined;
 
+  // The `image` property from Firestore now holds the direct URL
   if (sweet.newImageUrl) {
     imageUrl = sweet.newImageUrl;
     imageAlt = sweet.name;
   } else {
-    const placeholder = PlaceHolderImages.find(
-      (p) => p.id === sweet.image
-    ) as ImagePlaceholder;
-    imageUrl = placeholder ? placeholder.imageUrl : 'https://picsum.photos/seed/placeholder/600/400';
-    imageAlt = placeholder ? placeholder.description : sweet.name;
-    imageHint = placeholder ? placeholder.imageHint : 'product image';
+    imageUrl = sweet.image;
+    imageAlt = `Image of ${sweet.name}`;
+    imageHint = 'product image';
   }
   
+  const placeholder = PlaceHolderImages.find((p) => p.id === sweet.id);
+  if (!imageUrl && placeholder) {
+      imageUrl = placeholder.imageUrl;
+      imageAlt = placeholder.description;
+      imageHint = placeholder.imageHint;
+  } else if (!imageUrl) {
+      imageUrl = 'https://picsum.photos/seed/placeholder/600/400';
+      imageAlt = 'Placeholder Image';
+  }
+
 
   const handleAddToCart = () => {
     addToCart(sweet);
@@ -85,6 +93,7 @@ function ProductCard({
               fill
               className="object-cover"
               data-ai-hint={imageHint}
+              unoptimized // Use this if you are using external images with data URLs or from unconfigured hostnames
             />
           )}
         </div>
@@ -169,31 +178,15 @@ function EditProductModal({
 
   const handleSave = () => {
     if (editedSweet.newImageUrl) {
-        const newPlaceholder = {
-            id: editedSweet.id,
-            description: `Image of ${editedSweet.name}`,
-            imageUrl: editedSweet.newImageUrl,
-            imageHint: 'product image'
-        };
-        const placeholderIndex = PlaceHolderImages.findIndex(p => p.id === editedSweet.id);
-        if (placeholderIndex > -1) {
-            PlaceHolderImages[placeholderIndex] = newPlaceholder;
-        } else {
-            PlaceHolderImages.push(newPlaceholder);
-        }
+        // The image URL is now part of the sweet object itself
+        editedSweet.image = editedSweet.newImageUrl;
     }
     const { newImageUrl, ...sweetToSave } = editedSweet;
     onSave(sweetToSave);
     onClose();
   };
   
-  let imageUrl = editedSweet.newImageUrl;
-  if (!imageUrl) {
-     const placeholder = PlaceHolderImages.find(p => p.id === editedSweet.image);
-     if(placeholder) {
-        imageUrl = placeholder.imageUrl;
-     }
-  }
+  let imageUrl = editedSweet.newImageUrl || editedSweet.image;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -209,7 +202,7 @@ function EditProductModal({
             <div className="space-y-4">
                 <div className="relative aspect-[3/2] w-full rounded-md overflow-hidden border">
                     {imageUrl ? (
-                        <Image src={imageUrl} alt="Pré-visualização do produto" fill className="object-cover" />
+                        <Image src={imageUrl} alt="Pré-visualização do produto" fill className="object-cover" unoptimized/>
                     ) : (
                         <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
                             Sem imagem
@@ -244,7 +237,7 @@ function EditProductModal({
                             type="text"
                             placeholder="Cole o link da imagem aqui"
                             className="pl-9"
-                            value={editedSweet.newImageUrl || ''}
+                            value={editedSweet.newImageUrl || editedSweet.image || ''}
                             onChange={handleImageUrlChange}
                         />
                     </div>
@@ -398,5 +391,3 @@ export default function CatalogPage() {
     </div>
   );
 }
-
-    

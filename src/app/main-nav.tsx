@@ -15,7 +15,7 @@ import {
   Briefcase,
   User,
   Combine,
-  CreditCard,
+  PlusCircle,
 } from 'lucide-react';
 
 import { Logo } from '@/components/logo';
@@ -99,6 +99,18 @@ export function MainNav() {
                 <Link href="/dashboard">
                   <LayoutDashboard />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive('/dashboard/add-product')}
+                tooltip="Adicionar Produto"
+              >
+                <Link href="/dashboard/add-product">
+                  <PlusCircle />
+                  <span>Adicionar Produto</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

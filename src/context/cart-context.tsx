@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import type { Sweet } from '@/lib/data';
+import type { Sweet } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 export interface CartItem extends Sweet {
