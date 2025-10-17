@@ -123,10 +123,17 @@ export default function GeneralCashFlowPage() {
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [businessTransactions, personalTransactions]);
 
-  const businessIncome = useMemo(() => (businessTransactions || []).filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0), [businessTransactions]);
-  const businessExpense = useMemo(() => (businessTransactions || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0), [businessTransactions]);
-  const personalIncome = useMemo(() => (personalTransactions || []).filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0), [personalTransactions]);
-  const personalExpense = useMemo(() => (personalTransactions || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0), [personalTransactions]);
+  const { businessIncome, businessExpense, personalIncome, personalExpense } = useMemo(() => {
+    const bTxs = businessTransactions || [];
+    const pTxs = personalTransactions || [];
+
+    return {
+      businessIncome: bTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+      businessExpense: bTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+      personalIncome: pTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+      personalExpense: pTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+    };
+  }, [businessTransactions, personalTransactions]);
 
   const totalIncome = businessIncome + personalIncome;
   const totalExpense = businessExpense + personalExpense;
@@ -334,5 +341,3 @@ export default function GeneralCashFlowPage() {
     </div>
   );
 }
-
-    

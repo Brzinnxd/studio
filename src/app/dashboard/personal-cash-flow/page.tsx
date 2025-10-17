@@ -133,15 +133,21 @@ export default function PersonalCashFlowPage() {
   
   const displayedTransactions = transactions || [];
 
-  const totalIncome = displayedTransactions
-    .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
+  const { totalIncome, totalExpense, netProfit } = useMemo(() => {
+    const txs = transactions || [];
+    const income = txs
+      .filter((t) => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const expense = txs
+      .filter((t) => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0);
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      netProfit: income - expense,
+    };
+  }, [transactions]);
 
-  const totalExpense = displayedTransactions
-    .filter((t) => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
-
-  const netProfit = totalIncome - totalExpense;
 
   const chartData = [
     { name: 'Entradas', value: totalIncome },
@@ -406,5 +412,3 @@ export default function PersonalCashFlowPage() {
     </div>
   );
 }
-
-    
