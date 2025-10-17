@@ -67,7 +67,7 @@ const getCurrentMonthKey = () => {
 const getMonthName = (monthKey: string) => {
     const [year, month] = monthKey.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 }
 
 
@@ -406,3 +406,5 @@ export default function PersonalCashFlowPage() {
     </div>
   );
 }
+
+    
