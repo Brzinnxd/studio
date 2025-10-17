@@ -19,10 +19,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Link as LinkIcon, PlusCircle, Checkbox } from 'lucide-react';
+import { Upload, Link as LinkIcon, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
+import { Checkbox } from '@/components/ui/checkbox';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+
 
 const productSchema = z.object({
   name: z.string().min(1, 'O nome é obrigatório.'),
@@ -87,34 +89,20 @@ export default function AddProductPage() {
       return;
     }
 
-    try {
-      const productsCollection = collection(firestore, 'products');
-      const newProduct = {
-        ...data,
-        id: '', // Firestore will generate this
-        image: imageUrl, // For simplicity, storing URL directly.
-        // In a real app, you might want to create a placeholder and store the ID.
-      };
+    const productsCollection = collection(firestore, 'products');
+    const newProduct = {
+      ...data,
+      image: imageUrl, // For simplicity, storing URL directly.
+    };
 
-      // Firestore will auto-generate an ID
-      const docRef = await addDocumentNonBlocking(productsCollection, newProduct);
+    addDocumentNonBlocking(productsCollection, newProduct);
 
-      toast({
-        title: 'Sucesso!',
-        description: `Produto "${data.name}" adicionado ao catálogo.`,
-      });
-      reset();
-      setImageUrl('');
-      // Optionally, redirect to the catalog page
-      // router.push('/');
-    } catch (error) {
-      console.error('Error adding product:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao adicionar produto',
-        description: 'Ocorreu um erro. Por favor, tente novamente.',
-      });
-    }
+    toast({
+      title: 'Sucesso!',
+      description: `Produto "${data.name}" adicionado ao catálogo.`,
+    });
+    reset();
+    setImageUrl('');
   };
 
   return (

@@ -48,7 +48,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
         })
       )
     });
-  return promise;
+  // Do not return the promise, to enforce non-blocking behavior
 }
 
 
