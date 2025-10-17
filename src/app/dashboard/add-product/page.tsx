@@ -182,7 +182,7 @@ export default function AddProductPage() {
               <Label>Imagem do Produto</Label>
               <div className="relative aspect-[3/2] w-full rounded-md overflow-hidden border-2 border-dashed border-muted flex items-center justify-center">
                 {imageUrl ? (
-                  <Image src={imageUrl} alt="Pré-visualização do produto" fill className="object-cover" />
+                  <Image src={imageUrl} alt="Pré-visualização do produto" fill className="object-cover" unoptimized/>
                 ) : (
                   <div className="text-center text-muted-foreground">
                     <Upload className="mx-auto h-8 w-8" />
