@@ -1,0 +1,291 @@
+{
+  "entities": {
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a sweet product offered by Angel's Sweets Emporium.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the product."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the sweet product (e.g., 'Balas Baianas')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the product."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the product image.",
+          "format": "uri"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product."
+        },
+        "inventory": {
+          "type": "number",
+          "description": "Current inventory level of the product."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "imageUrl",
+        "price",
+        "inventory"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer of Angel's Sweets Emporium.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the customer."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the customer."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the customer."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the customer.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the customer."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the customer."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+        "address"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order placed by a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to Customer. (Relationship: Customer 1:N Order)"
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "Date and time the order was placed.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount of the order."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the order (e.g., 'Pending', 'Processing', 'Shipped', 'Delivered')."
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "orderDate",
+        "totalAmount",
+        "status"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Represents an item within an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order item."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N OrderItem)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the product in the order item."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Price of a single unit of the product at the time of the order."
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "productId",
+        "quantity",
+        "unitPrice"
+      ]
+    },
+    "TrendingFlavor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TrendingFlavor",
+      "type": "object",
+      "description": "Represents an analysis of trending flavor pairings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the trending flavor analysis."
+        },
+        "flavorCombination": {
+          "type": "string",
+          "description": "Description of the flavor combination."
+        },
+        "trendScore": {
+          "type": "number",
+          "description": "A numerical score representing the trendiness of the combination."
+        },
+        "analysisDate": {
+          "type": "string",
+          "description": "The date on which the trend analysis was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "flavorCombination",
+        "trendScore",
+        "analysisDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores information about each product.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "Unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer profile information.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "Unique identifier for the customer (equal to the user's UID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "customers/{customerId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores orders associated with a specific customer.  Path-based ownership: customerId in path is the owner.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "Unique identifier for the customer (equal to the user's UID)."
+            },
+            {
+              "name": "orderId",
+              "description": "Unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "customers/{customerId}/orders/{orderId}/order_items/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores order items associated with a specific order.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "Unique identifier for the customer (equal to the user's UID)."
+            },
+            {
+              "name": "orderId",
+              "description": "Unique identifier for the order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "Unique identifier for the order item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "trending_flavors/{trendingFlavorId}",
+        "definition": {
+          "entityName": "TrendingFlavor",
+          "schema": {
+            "$ref": "#/backend/entities/TrendingFlavor"
+          },
+          "description": "Stores trending flavor combinations and their analysis data.",
+          "params": [
+            {
+              "name": "trendingFlavorId",
+              "description": "Unique identifier for the trending flavor analysis."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed for Angel's Sweets Emporium, focusing on product presentation, order management, and customer profiles. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is achieved by separating user-specific data (orders) from global data (products and trending flavors). Access Modeling utilizes path-based ownership for user-related data (orders) and standard collections for products and trending flavors.\n\nSpecifically:\n\n*   `products`: Stores product information globally accessible for display.\n*   `customers/{customerId}`: Stores customer profiles. Orders are stored as a subcollection to maintain ownership and improve query performance for a specific customer's order history.\n*   `customers/{customerId}/orders/{orderId}`: Stores orders associated with specific customers, using path-based ownership.\n*   `trending_flavors`: Stores trending flavor combinations globally for display and analysis.\n\nThis design supports QAPs as follows:\n\n*   Products and trending flavors are stored in root collections, allowing list operations with simple security rules.\n*   Customer data and order data are separated, ensuring secure `list` operations for customer-owned orders via path-based rules without exposing other customer's data.\n\nAuthorization Independence is maintained by:\n\n*   Orders are stored as a subcollection of `/customers/{customerId}/orders/{orderId}`, so security rules can directly verify `request.auth.uid == customerId` without needing to `get()` the customer document."
+  }
+}

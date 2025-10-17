@@ -1,0 +1,117 @@
+/**
+ * @description: This ruleset enforces a strict user-ownership model for customer data and their associated orders. Products and trending flavors are publicly readable.
+ * @dataStructure:
+ *   - /products/{productId}: Stores product information, publicly readable.
+ *   - /customers/{customerId}: Stores customer profile data, accessible only to the customer.
+ *   - /customers/{customerId}/orders/{orderId}: Stores orders for a specific customer, accessible only to that customer.
+ *   - /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}: Stores order items for a specific order, accessible only to the customer.
+ *   - /trending_flavors/{trendingFlavorId}: Stores trending flavor data, publicly readable.
+ * @keySecurityDecisions:
+ *   - Customers can only access their own profile and orders.
+ *   - Products and trending flavors are publicly readable but not writable.
+ *   - User listing is disallowed.
+ * @denormalizationForAuthorization: Orders are stored as a subcollection of the customer document to simplify ownership checks.
+ * @structuralSegregation: Customer-specific data (orders) is stored in a subcollection of the customer document, while global data (products and trending flavors) is stored in top-level collections.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description: Allows public read access to product information. Only allows create, update, and delete operations if the ownership field matches the user's auth UID.
+     * @path: /databases/{database}/documents/products/{productId}
+     * @allow: get, list requests by any user.
+     * @deny: create, update, delete requests by any user.
+     * @principle: Allows public read access while restricting writes.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description: Enforces that only the authenticated user can read, update, or delete their own customer document. Allows self-creation of the customer document.
+     * @path: /databases/{database}/documents/customers/{customerId}
+     * @allow: get, update, delete requests by the user with matching customerId. create request for a new customer document where the customerId matches the user's UID.
+     * @deny: get, update, delete requests by any user where customerId does not match the user's UID.
+     * @principle: Enforces document ownership for reads and writes.
+     */
+    match /customers/{customerId} {
+      allow get: if isSignedIn() && isOwner(customerId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isSignedIn() && isExistingOwner(customerId);
+      allow delete: if isSignedIn() && isExistingOwner(customerId);
+    }
+
+    /**
+     * @description: Enforces that only the owner of the customer document can read, create, update, or delete orders within their subcollection.
+     * @path: /databases/{database}/documents/customers/{customerId}/orders/{orderId}
+     * @allow: get, create, update, delete requests by the user with matching customerId.
+     * @deny: get, create, update, delete requests by any user where customerId does not match the user's UID.
+     * @principle: Enforces document ownership for reads and writes within a subcollection.
+     */
+    match /customers/{customerId}/orders/{orderId} {
+      allow get: if isSignedIn() && isOwner(customerId);
+      allow list: if isSignedIn() && isOwner(customerId);
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isSignedIn() && isExistingOwner(customerId);
+      allow delete: if isSignedIn() && isExistingOwner(customerId);
+    }
+
+     /**
+      * @description: Enforces that only the owner of the customer document can read, create, update, or delete order items within their subcollection.
+      * @path: /databases/{database}/documents/customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
+      * @allow: get, create, update, delete requests by the user with matching customerId.
+      * @deny: get, create, update, delete requests by any user where customerId does not match the user's UID.
+      * @principle: Enforces document ownership for reads and writes within a subcollection.
+      */
+    match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
+      allow get: if isSignedIn() && isOwner(customerId);
+      allow list: if isSignedIn() && isOwner(customerId);
+      allow create: if isSignedIn() && isOwner(customerId);
+      allow update: if isSignedIn() && isExistingOwner(customerId);
+      allow delete: if isSignedIn() && isExistingOwner(customerId);
+    }
+
+    /**
+     * @description: Allows public read access to trending flavor information. Restricts write access.
+     * @path: /databases/{database}/documents/trending_flavors/{trendingFlavorId}
+     * @allow: get, list requests by any user.
+     * @deny: create, update, delete requests by any user.
+     * @principle: Allows public read access while restricting writes.
+     */
+    match /trending_flavors/{trendingFlavorId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description: Checks if the user is signed in.
+     * @returns: True if the user is authenticated, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description: Checks if the authenticated user's UID matches the provided userId.
+     * @param: userId The user ID to compare against the authenticated user's UID.
+     * @returns: True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description: Checks if the authenticated user's UID matches the provided userId and the resource exists.
+     * @param: userId The user ID to compare against the authenticated user's UID.
+     * @returns: True if the user is the owner and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+    }
+  }
+}
