@@ -5,6 +5,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  collection,
+  doc,
   CollectionReference,
   DocumentReference,
   SetOptions,
@@ -37,14 +39,24 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
  * Returns the Promise for the new doc ref, but typically not awaited by caller.
  */
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  const promise = addDoc(colRef, data)
+  // Generate a new document reference with an auto-generated ID
+  const newDocRef = doc(colRef);
+  
+  // Create the new product data including the ID
+  const dataWithId = {
+    ...data,
+    id: newDocRef.id,
+  };
+
+  // Use setDoc with the new reference to ensure the ID is included in the document
+  setDoc(newDocRef, dataWithId)
     .catch(error => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
-          path: colRef.path,
+          path: newDocRef.path,
           operation: 'create',
-          requestResourceData: data,
+          requestResourceData: dataWithId,
         })
       )
     });
