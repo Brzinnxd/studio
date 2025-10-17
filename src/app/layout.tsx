@@ -9,6 +9,7 @@ import { MainNav } from '@/components/main-nav';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/context/cart-context';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: "Angel's Sweets Emporium",
@@ -35,19 +36,23 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <CartProvider>
-          <SidebarProvider>
-            <Sidebar>
-              <MainNav />
-            </Sidebar>
-            <SidebarInset>
-              <Header />
-              <main className="p-4 lg:p-6">{children}</main>
-            </SidebarInset>
-          </SidebarProvider>
-        </CartProvider>
+        <FirebaseClientProvider>
+          <CartProvider>
+            <SidebarProvider>
+              <Sidebar>
+                <MainNav />
+              </Sidebar>
+              <SidebarInset>
+                <Header />
+                <main className="p-4 lg:p-6">{children}</main>
+              </SidebarInset>
+            </SidebarProvider>
+          </CartProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
   );
 }
+
+    

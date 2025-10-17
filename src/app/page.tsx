@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { sweets as initialSweets, type Sweet } from '@/lib/data';
+import { Sweet } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
 import { ShoppingCart, Pencil, Upload, Link as LinkIcon } from 'lucide-react';
@@ -32,6 +32,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DisplaySweet = Sweet & { newImageUrl?: string };
 
@@ -56,9 +60,9 @@ function ProductCard({
     const placeholder = PlaceHolderImages.find(
       (p) => p.id === sweet.image
     ) as ImagePlaceholder;
-    imageUrl = placeholder.imageUrl;
-    imageAlt = placeholder.description;
-    imageHint = placeholder.imageHint;
+    imageUrl = placeholder ? placeholder.imageUrl : 'https://picsum.photos/seed/placeholder/600/400';
+    imageAlt = placeholder ? placeholder.description : sweet.name;
+    imageHint = placeholder ? placeholder.imageHint : 'product image';
   }
   
 
@@ -164,7 +168,22 @@ function EditProductModal({
 
 
   const handleSave = () => {
-    onSave(editedSweet);
+    if (editedSweet.newImageUrl) {
+        const newPlaceholder = {
+            id: editedSweet.id,
+            description: `Image of ${editedSweet.name}`,
+            imageUrl: editedSweet.newImageUrl,
+            imageHint: 'product image'
+        };
+        const placeholderIndex = PlaceHolderImages.findIndex(p => p.id === editedSweet.id);
+        if (placeholderIndex > -1) {
+            PlaceHolderImages[placeholderIndex] = newPlaceholder;
+        } else {
+            PlaceHolderImages.push(newPlaceholder);
+        }
+    }
+    const { newImageUrl, ...sweetToSave } = editedSweet;
+    onSave(sweetToSave);
     onClose();
   };
   
@@ -225,6 +244,7 @@ function EditProductModal({
                             type="text"
                             placeholder="Cole o link da imagem aqui"
                             className="pl-9"
+                            value={editedSweet.newImageUrl || ''}
                             onChange={handleImageUrlChange}
                         />
                     </div>
@@ -289,7 +309,14 @@ function EditProductModal({
 
 
 export default function CatalogPage() {
-  const [sweets, setSweets] = useState<DisplaySweet[]>(initialSweets.map(s => ({...s})));
+  const firestore = useFirestore();
+  const productsCollection = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'products');
+  }, [firestore]);
+
+  const { data: sweets, isLoading } = useCollection<Sweet>(productsCollection);
+
   const [editingSweet, setEditingSweet] = useState<DisplaySweet | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -303,11 +330,48 @@ export default function CatalogPage() {
     setEditingSweet(null);
   };
 
-  const handleSaveSweet = (updatedSweet: DisplaySweet) => {
-    setSweets(currentSweets => 
-      currentSweets.map(s => s.id === updatedSweet.id ? updatedSweet : s)
-    );
+  const handleSaveSweet = (updatedSweet: Sweet) => {
+    if (!firestore) return;
+    const productRef = doc(firestore, 'products', updatedSweet.id);
+    setDocumentNonBlocking(productRef, updatedSweet, { merge: true });
   };
+  
+  if (isLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <header className="text-center mb-12">
+                <h1 className="text-4xl font-headline font-bold tracking-tight text-primary-foreground md:text-5xl">
+                Nosso Doce Catálogo
+                </h1>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+                Explore nossa seleção de doces artesanais, feitos com amor e os
+                melhores ingredientes.
+                </p>
+            </header>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <Card key={i} className="flex flex-col overflow-hidden">
+                        <CardHeader className="p-0">
+                           <Skeleton className="aspect-[3/2] w-full" />
+                        </CardHeader>
+                        <CardContent className="flex-grow p-4 space-y-2">
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-full" />
+                             <Skeleton className="h-4 w-1/2" />
+                        </CardContent>
+                        <CardFooter className="p-4 pt-0 flex items-center justify-between">
+                            <Skeleton className="h-6 w-1/4" />
+                            <div className="flex gap-2">
+                                <Skeleton className="h-10 w-10" />
+                                <Skeleton className="h-10 w-10" />
+                            </div>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -321,7 +385,7 @@ export default function CatalogPage() {
         </p>
       </header>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {sweets.map((sweet) => (
+        {sweets?.map((sweet) => (
           <ProductCard key={sweet.id} sweet={sweet} onEdit={handleEditClick} />
         ))}
       </div>
@@ -334,3 +398,5 @@ export default function CatalogPage() {
     </div>
   );
 }
+
+    
