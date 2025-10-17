@@ -1,117 +1,146 @@
 /**
- * @description: This ruleset enforces a strict user-ownership model for customer data and their associated orders. Products and trending flavors are publicly readable.
- * @dataStructure:
- *   - /products/{productId}: Stores product information, publicly readable.
- *   - /customers/{customerId}: Stores customer profile data, accessible only to the customer.
- *   - /customers/{customerId}/orders/{orderId}: Stores orders for a specific customer, accessible only to that customer.
- *   - /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}: Stores order items for a specific order, accessible only to the customer.
- *   - /trending_flavors/{trendingFlavorId}: Stores trending flavor data, publicly readable.
- * @keySecurityDecisions:
- *   - Customers can only access their own profile and orders.
- *   - Products and trending flavors are publicly readable but not writable.
- *   - User listing is disallowed.
- * @denormalizationForAuthorization: Orders are stored as a subcollection of the customer document to simplify ownership checks.
- * @structuralSegregation: Customer-specific data (orders) is stored in a subcollection of the customer document, while global data (products and trending flavors) is stored in top-level collections.
+ * @file Firebase Security Rules for Angel's Sweets Emporium.
+ *
+ * @core_philosophy This ruleset enforces a strict user-ownership model for customer-related data (customers and their orders),
+ * while allowing public read access to product and trending flavor information. Financial transactions are not secured, and therefore should not be written to production until appropriate auth has been added.
+ *
+ * @data_structure
+ * - /products/{productId}: Publicly readable product information.
+ * - /customers/{customerId}: Customer profile data, where customerId is the user's UID.
+ * - /customers/{customerId}/orders/{orderId}: Orders placed by a specific customer.
+ * - /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}: Items within a specific order.
+ * - /trending_flavors/{trendingFlavorId}: Publicly readable trending flavor combinations.
+ * - /business_transactions/{transactionId}: Business related financial transactions.
+ * - /personal_transactions/{transactionId}: Personal financial transactions.
+ *
+ * @key_security_decisions
+ * - Listing all users is disallowed.
+ * - Read-only collections (products, trending_flavors) are publicly readable.
+ * - Write access to customer and order data is restricted to the owning user (customerId in path must match request.auth.uid).
+ * - Business and Personal transactions are not secured and should not be written to in production.
+ *
+ * @denormalization_for_authorization
+ * - Orders are stored as a subcollection of /customers/{customerId}/orders/{orderId} to enable path-based ownership checks.
+ *   This avoids the need for `get()` calls to verify customer ownership.
+ *
+ * @structural_segregation
+ * - User-specific data (orders) is stored in a private subcollection under the /customers/{customerId} path.
+ * - Public data (products, trending flavors) is stored in top-level collections.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description: Allows public read access to product information. Only allows create, update, and delete operations if the ownership field matches the user's auth UID.
-     * @path: /databases/{database}/documents/products/{productId}
-     * @allow: get, list requests by any user.
-     * @deny: create, update, delete requests by any user.
-     * @principle: Allows public read access while restricting writes.
+     * @description Allows public read access to product information. Write access is denied.
+     * @path /products/{productId}
+     * @allow (get, list): if true
+     * @deny (create, update, delete): if false
+     * @principle Allows public access to product data while preventing unauthorized modifications.
      */
     match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description: Enforces that only the authenticated user can read, update, or delete their own customer document. Allows self-creation of the customer document.
-     * @path: /databases/{database}/documents/customers/{customerId}
-     * @allow: get, update, delete requests by the user with matching customerId. create request for a new customer document where the customerId matches the user's UID.
-     * @deny: get, update, delete requests by any user where customerId does not match the user's UID.
-     * @principle: Enforces document ownership for reads and writes.
+     * @description Allows a user to read and write their own customer profile.
+     * @path /customers/{customerId}
+     * @allow (get, create, update, delete, list): if isOwner(customerId)
+     * @deny: if !isOwner(customerId)
+     * @principle Enforces document ownership: Only the authenticated user can access their own customer profile.
      */
     match /customers/{customerId} {
-      allow get: if isSignedIn() && isOwner(customerId);
+      allow get: if isOwner(customerId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(customerId);
-      allow update: if isSignedIn() && isExistingOwner(customerId);
-      allow delete: if isSignedIn() && isExistingOwner(customerId);
+      allow create: if isOwner(customerId);
+      allow update: if isOwner(customerId);
+      allow delete: if isExistingOwner(customerId);
+
+      /**
+       * @description Allows a user to read and write orders associated with their customer profile.
+       * @path /customers/{customerId}/orders/{orderId}
+       * @allow (get, create, update, delete, list): if isOwner(customerId)
+       * @deny: if !isOwner(customerId)
+       * @principle Enforces path-based ownership: Only the authenticated user can access orders associated with their customer profile.
+       */
+      match /orders/{orderId} {
+        allow get: if isOwner(customerId);
+        allow list: if isOwner(customerId);
+        allow create: if isOwner(customerId);
+        allow update: if isExistingOwner(customerId);
+        allow delete: if isExistingOwner(customerId);
+
+        /**
+         * @description Allows a user to read and write order items associated with their order.
+         * @path /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
+         * @allow (get, create, update, delete, list): if isOwner(customerId)
+         * @deny: if !isOwner(customerId)
+         * @principle Enforces path-based ownership: Only the authenticated user can access order items associated with their order.
+         */
+        match /order_items/{orderItemId} {
+          allow get: if isOwner(customerId);
+          allow list: if isOwner(customerId);
+          allow create: if isOwner(customerId);
+          allow update: if isExistingOwner(customerId);
+          allow delete: if isExistingOwner(customerId);
+        }
+      }
     }
 
     /**
-     * @description: Enforces that only the owner of the customer document can read, create, update, or delete orders within their subcollection.
-     * @path: /databases/{database}/documents/customers/{customerId}/orders/{orderId}
-     * @allow: get, create, update, delete requests by the user with matching customerId.
-     * @deny: get, create, update, delete requests by any user where customerId does not match the user's UID.
-     * @principle: Enforces document ownership for reads and writes within a subcollection.
-     */
-    match /customers/{customerId}/orders/{orderId} {
-      allow get: if isSignedIn() && isOwner(customerId);
-      allow list: if isSignedIn() && isOwner(customerId);
-      allow create: if isSignedIn() && isOwner(customerId);
-      allow update: if isSignedIn() && isExistingOwner(customerId);
-      allow delete: if isSignedIn() && isExistingOwner(customerId);
-    }
-
-     /**
-      * @description: Enforces that only the owner of the customer document can read, create, update, or delete order items within their subcollection.
-      * @path: /databases/{database}/documents/customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
-      * @allow: get, create, update, delete requests by the user with matching customerId.
-      * @deny: get, create, update, delete requests by any user where customerId does not match the user's UID.
-      * @principle: Enforces document ownership for reads and writes within a subcollection.
-      */
-    match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
-      allow get: if isSignedIn() && isOwner(customerId);
-      allow list: if isSignedIn() && isOwner(customerId);
-      allow create: if isSignedIn() && isOwner(customerId);
-      allow update: if isSignedIn() && isExistingOwner(customerId);
-      allow delete: if isSignedIn() && isExistingOwner(customerId);
-    }
-
-    /**
-     * @description: Allows public read access to trending flavor information. Restricts write access.
-     * @path: /databases/{database}/documents/trending_flavors/{trendingFlavorId}
-     * @allow: get, list requests by any user.
-     * @deny: create, update, delete requests by any user.
-     * @principle: Allows public read access while restricting writes.
+     * @description Allows public read access to trending flavor combinations. Write access is denied.
+     * @path /trending_flavors/{trendingFlavorId}
+     * @allow (get, list): if true
+     * @deny (create, update, delete): if false
+     * @principle Allows public access to trending flavor data while preventing unauthorized modifications.
      */
     match /trending_flavors/{trendingFlavorId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    // --- Helper Functions ---
-
-    /**
-     * @description: Checks if the user is signed in.
-     * @returns: True if the user is authenticated, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description: Checks if the authenticated user's UID matches the provided userId.
-     * @param: userId The user ID to compare against the authenticated user's UID.
-     * @returns: True if the user is the owner, false otherwise.
+     * @description Placeholder for business transactions security rules.  Transactions are not secured, and therefore should not be written to production.
+     * @path /business_transactions/{transactionId}
      */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    match /business_transactions/{transactionId} {
+      allow get: if false; // TODO: Add appropriate security rules.
+      allow list: if false; // TODO: Add appropriate security rules.
+      allow create: if false; // TODO: Add appropriate security rules.
+      allow update: if false; // TODO: Add appropriate security rules.
+      allow delete: if false; // TODO: Add appropriate security rules.
     }
 
     /**
-     * @description: Checks if the authenticated user's UID matches the provided userId and the resource exists.
-     * @param: userId The user ID to compare against the authenticated user's UID.
-     * @returns: True if the user is the owner and the resource exists, false otherwise.
+     * @description Placeholder for personal transactions security rules.  Transactions are not secured, and therefore should not be written to production.
+     * @path /personal_transactions/{transactionId}
      */
-    function isExistingOwner(userId) {
-        return isSignedIn() && isOwner(userId) && resource != null;
+    match /personal_transactions/{transactionId} {
+      allow get: if false; // TODO: Add appropriate security rules.
+      allow list: if false; // TODO: Add appropriate security rules.
+      allow create: if false; // TODO: Add appropriate security rules.
+      allow update: if false; // TODO: Add appropriate security rules.
+      allow delete: if false; // TODO: Add appropriate security rules.
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
