@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -43,6 +43,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Transaction = {
   id: string;
@@ -53,14 +57,6 @@ type Transaction = {
   date: string;
 };
 
-type MonthlyReport = {
-  month: string; // e.g., "2023-10"
-  transactions: Transaction[];
-  totalIncome: number;
-  totalExpense: number;
-  netProfit: number;
-};
-
 const getCurrentMonthKey = () => {
   const now = new Date();
   return `${now.getFullYear()}-${(now.getMonth() + 1)
@@ -68,82 +64,54 @@ const getCurrentMonthKey = () => {
     .padStart(2, '0')}`;
 };
 
+const getMonthName = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
 export default function CashFlowPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
+  const firestore = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
+  const [allMonths, setAllMonths] = useState<string[]>([]);
 
+  const transactionsCollection = useMemoFirebase(() => {
+    return firestore ? collection(firestore, 'business_transactions') : null;
+  }, [firestore]);
+
+  const { data: allTransactions, isLoading: isLoadingAll } = useCollection<Transaction>(transactionsCollection);
+
+  const monthlyTransactionsQuery = useMemoFirebase(() => {
+    if (!transactionsCollection) return null;
+    const [year, month] = selectedMonth.split('-');
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+    return query(transactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
+  }, [transactionsCollection, selectedMonth]);
+
+  const { data: transactions, isLoading: isLoadingMonth } = useCollection<Transaction>(monthlyTransactionsQuery);
 
   useEffect(() => {
-    // --- Load data from localStorage on component mount ---
-    const storedReports = localStorage.getItem('monthlyReports');
-    const storedTransactions = localStorage.getItem('transactions');
-    const lastProcessedMonth = localStorage.getItem('lastProcessedMonth');
-    const currentMonth = getCurrentMonthKey();
-
-    const reports: MonthlyReport[] = storedReports
-      ? JSON.parse(storedReports)
-      : [];
-    let currentTransactions: Transaction[] = storedTransactions
-      ? JSON.parse(storedTransactions)
-      : [];
-
-    if (lastProcessedMonth && lastProcessedMonth !== currentMonth) {
-      // --- Archive previous month and start a new one ---
-      const prevMonthTotalIncome = currentTransactions
-        .filter((t) => t.type === 'income')
-        .reduce((acc, t) => acc + t.amount, 0);
-      const prevMonthTotalExpense = currentTransactions
-        .filter((t) => t.type === 'expense')
-        .reduce((acc, t) => acc + t.amount, 0);
-      const prevMonthNetProfit = prevMonthTotalIncome - prevMonthTotalExpense;
-
-      const newReport: MonthlyReport = {
-        month: lastProcessedMonth,
-        transactions: currentTransactions,
-        totalIncome: prevMonthTotalIncome,
-        totalExpense: prevMonthTotalExpense,
-        netProfit: prevMonthNetProfit,
-      };
-      reports.push(newReport);
-
-      // Start new month with opening balance
-      currentTransactions = [];
-      if (prevMonthNetProfit > 0) {
-        currentTransactions.push({
-          id: new Date().toISOString(),
-          name: 'Saldo Inicial',
-          description: `Lucro líquido de ${lastProcessedMonth}`,
-          amount: prevMonthNetProfit,
-          type: 'income',
-          date: new Date().toISOString(),
-        });
+    if (allTransactions) {
+      const months = new Set(allTransactions.map(t => t.date.substring(0, 7)));
+      const currentMonth = getCurrentMonthKey();
+      if (!months.has(currentMonth)) {
+        months.add(currentMonth);
       }
+      setAllMonths(Array.from(months).sort().reverse());
     }
-
-    setTransactions(currentTransactions);
-    setMonthlyReports(reports);
-    localStorage.setItem('transactions', JSON.stringify(currentTransactions));
-    localStorage.setItem('monthlyReports', JSON.stringify(reports));
-    localStorage.setItem('lastProcessedMonth', currentMonth);
-  }, []);
+  }, [allTransactions]);
   
-  useEffect(() => {
-    // --- Save transactions to localStorage whenever they change ---
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount || selectedMonth !== getCurrentMonthKey()) return;
+    if (!name || !amount || !transactionsCollection) return;
 
-    const newTransaction: Transaction = {
-      id: new Date().toISOString(),
+    const newTransaction = {
       name,
       description,
       amount: parseFloat(amount),
@@ -151,20 +119,19 @@ export default function CashFlowPage() {
       date: new Date().toISOString(),
     };
 
-    setTransactions([...transactions, newTransaction]);
+    addDocumentNonBlocking(transactionsCollection, newTransaction);
     setName('');
     setDescription('');
     setAmount('');
   };
 
   const handleDeleteTransaction = (id: string) => {
-    if (selectedMonth !== getCurrentMonthKey()) return; // Can't delete from archived reports
-    setTransactions(transactions.filter((t) => t.id !== id));
+    if (!firestore) return;
+    const docRef = doc(firestore, 'business_transactions', id);
+    deleteDocumentNonBlocking(docRef);
   };
   
-  const displayedTransactions = selectedMonth === getCurrentMonthKey() 
-    ? transactions 
-    : monthlyReports.find(r => r.month === selectedMonth)?.transactions || [];
+  const displayedTransactions = transactions || [];
 
   const totalIncome = displayedTransactions
     .filter((t) => t.type === 'income')
@@ -182,7 +149,8 @@ export default function CashFlowPage() {
   ];
 
   const COLORS = ['#22c55e', '#ef4444'];
-
+  
+  const isLoading = isLoadingAll || isLoadingMonth;
 
   return (
     <div className="space-y-6">
@@ -191,14 +159,13 @@ export default function CashFlowPage() {
          <div className="flex items-center gap-4">
           <Label>Ver Relatório</Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={getCurrentMonthKey()}>Mês Atual</SelectItem>
-              {monthlyReports.map(report => (
-                <SelectItem key={report.month} value={report.month}>
-                  {report.month}
+              {allMonths.map(month => (
+                <SelectItem key={month} value={month}>
+                  {getMonthName(month)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -224,7 +191,6 @@ export default function CashFlowPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Venda de bolo"
                   required
-                  disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
               <div className="space-y-2">
@@ -234,7 +200,6 @@ export default function CashFlowPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ex: Bolo de chocolate para festa"
-                  disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
               <div className="space-y-2">
@@ -246,7 +211,6 @@ export default function CashFlowPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="R$ 0,00"
                   required
-                  disabled={selectedMonth !== getCurrentMonthKey()}
                 />
               </div>
               <div className="space-y-2">
@@ -257,7 +221,6 @@ export default function CashFlowPage() {
                     setType(value as 'income' | 'expense')
                   }
                   className="flex gap-4"
-                  disabled={selectedMonth !== getCurrentMonthKey()}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="income" id="income" />
@@ -271,7 +234,7 @@ export default function CashFlowPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={selectedMonth !== getCurrentMonthKey()}>
+              <Button type="submit" className="w-full">
                 Adicionar
               </Button>
             </CardFooter>
@@ -288,12 +251,14 @@ export default function CashFlowPage() {
                 <ArrowUpCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
+                {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                 <div className="text-2xl font-bold">
                   {totalIncome.toLocaleString('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                   })}
                 </div>
+                }
               </CardContent>
             </Card>
             <Card>
@@ -304,12 +269,14 @@ export default function CashFlowPage() {
                 <ArrowDownCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
+                {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                 <div className="text-2xl font-bold">
                   {totalExpense.toLocaleString('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                   })}
                 </div>
+                }
               </CardContent>
             </Card>
             <Card>
@@ -318,6 +285,7 @@ export default function CashFlowPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
+                {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                 <div
                   className={`text-2xl font-bold ${
                     netProfit >= 0 ? 'text-green-600' : 'text-red-600'
@@ -328,6 +296,7 @@ export default function CashFlowPage() {
                     currency: 'BRL',
                   })}
                 </div>
+                }
               </CardContent>
             </Card>
           </div>
@@ -336,6 +305,7 @@ export default function CashFlowPage() {
               <CardTitle>Visão Geral do Mês</CardTitle>
             </CardHeader>
             <CardContent>
+                {isLoading ? <div className='flex justify-center items-center h-[250px]'><Skeleton className='h-[250px] w-full' /></div> :
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -356,6 +326,7 @@ export default function CashFlowPage() {
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
+                }
             </CardContent>
           </Card>
         </div>
@@ -377,10 +348,20 @@ export default function CashFlowPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayedTransactions.length === 0 ? (
+              {isLoading ? (
+                Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className='h-5 w-20' /></TableCell>
+                        <TableCell><Skeleton className='h-5 w-40' /></TableCell>
+                        <TableCell><Skeleton className='h-5 w-16' /></TableCell>
+                        <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
+                        <TableCell className='text-right'><Skeleton className='h-8 w-8 inline-block' /></TableCell>
+                    </TableRow>
+                ))
+              ) : displayedTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center h-24">
-                    Nenhuma transação registrada para {selectedMonth}.
+                    Nenhuma transação registrada para {getMonthName(selectedMonth)}.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -412,7 +393,6 @@ export default function CashFlowPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteTransaction(t.id)}
-                        disabled={selectedMonth !== getCurrentMonthKey()}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -426,5 +406,4 @@ export default function CashFlowPage() {
       </Card>
     </div>
   );
-
-    
+}

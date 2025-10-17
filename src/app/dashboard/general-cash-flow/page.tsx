@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -42,6 +42,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 type Transaction = {
   id: string;
@@ -52,14 +56,6 @@ type Transaction = {
   date: string;
 };
 
-type MonthlyReport = {
-  month: string; // e.g., "2023-10"
-  transactions: Transaction[];
-  totalIncome: number;
-  totalExpense: number;
-  netProfit: number;
-};
-
 const getCurrentMonthKey = () => {
   const now = new Date();
   return `${now.getFullYear()}-${(now.getMonth() + 1)
@@ -67,93 +63,81 @@ const getCurrentMonthKey = () => {
     .padStart(2, '0')}`;
 };
 
+const getMonthName = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+
 export default function GeneralCashFlowPage() {
-    const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
-    const [allMonthlyReports, setAllMonthlyReports] = useState<MonthlyReport[]>([]);
+    const firestore = useFirestore();
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [businessIncome, setBusinessIncome] = useState(0);
-    const [businessExpense, setBusinessExpense] = useState(0);
-    const [personalIncome, setPersonalIncome] = useState(0);
-    const [personalExpense, setPersonalExpense] = useState(0);
+    const [allMonths, setAllMonths] = useState<string[]>([]);
 
+    const businessTransactionsCollection = useMemoFirebase(() => {
+        return firestore ? collection(firestore, 'business_transactions') : null;
+    }, [firestore]);
 
-  useEffect(() => {
-    // --- Load data from localStorage on component mount ---
-    const storedBusinessReports = localStorage.getItem('monthlyReports');
-    const storedBusinessTransactions = localStorage.getItem('transactions');
-    const storedPersonalReports = localStorage.getItem('personalMonthlyReports');
-    const storedPersonalTransactions = localStorage.getItem('personalTransactions');
+    const personalTransactionsCollection = useMemoFirebase(() => {
+        return firestore ? collection(firestore, 'personal_transactions') : null;
+    }, [firestore]);
     
-    const businessReports: MonthlyReport[] = storedBusinessReports ? JSON.parse(storedBusinessReports) : [];
-    const businessTransactions: Transaction[] = storedBusinessTransactions ? JSON.parse(storedBusinessTransactions) : [];
-    const personalReports: MonthlyReport[] = storedPersonalReports ? JSON.parse(storedPersonalReports) : [];
-    const personalTransactions: Transaction[] = storedPersonalTransactions ? JSON.parse(storedPersonalTransactions) : [];
+    const {data: allBusinessTransactions, isLoading: isLoadingAllBusiness } = useCollection<Transaction>(businessTransactionsCollection);
+    const {data: allPersonalTransactions, isLoading: isLoadingAllPersonal } = useCollection<Transaction>(personalTransactionsCollection);
 
-    const isCurrentMonth = selectedMonth === getCurrentMonthKey();
+    const monthlyBusinessQuery = useMemoFirebase(() => {
+        if (!businessTransactionsCollection) return null;
+        const [year, month] = selectedMonth.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+        return query(businessTransactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
+    }, [businessTransactionsCollection, selectedMonth]);
 
-    const currentBusinessTxs = isCurrentMonth ? businessTransactions : businessReports.find(r => r.month === selectedMonth)?.transactions || [];
-    const currentPersonalTxs = isCurrentMonth ? personalTransactions : personalReports.find(r => r.month === selectedMonth)?.transactions || [];
-    
-    const combinedTransactions = [...currentBusinessTxs, ...currentPersonalTxs].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    setAllTransactions(combinedTransactions);
+    const monthlyPersonalQuery = useMemoFirebase(() => {
+        if (!personalTransactionsCollection) return null;
+        const [year, month] = selectedMonth.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+        return query(personalTransactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
+    }, [personalTransactionsCollection, selectedMonth]);
 
-    const combinedReportsMap = new Map<string, MonthlyReport>();
+    const { data: businessTransactions, isLoading: isLoadingBusinessMonth } = useCollection<Transaction>(monthlyBusinessQuery);
+    const { data: personalTransactions, isLoading: isLoadingPersonalMonth } = useCollection<Transaction>(monthlyPersonalQuery);
 
-    [...businessReports, ...personalReports].forEach(report => {
-        const existingReport = combinedReportsMap.get(report.month);
-        if (existingReport) {
-            existingReport.transactions.push(...report.transactions);
-            existingReport.totalIncome += report.totalIncome;
-            existingReport.totalExpense += report.totalExpense;
-            existingReport.netProfit += report.netProfit;
-            existingReport.transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        } else {
-            combinedReportsMap.set(report.month, { ...report });
+
+    useEffect(() => {
+        const allTxs = [...(allBusinessTransactions || []), ...(allPersonalTransactions || [])];
+        if (allTxs.length > 0) {
+            const months = new Set(allTxs.map(t => t.date.substring(0, 7)));
+             const currentMonth = getCurrentMonthKey();
+            if (!months.has(currentMonth)) {
+                months.add(currentMonth);
+            }
+            setAllMonths(Array.from(months).sort().reverse());
         }
-    });
-    
-    const reports = Array.from(combinedReportsMap.values());
-    if (isCurrentMonth) {
-        const currentMonthReport = reports.find(r => r.month === getCurrentMonthKey());
-        if (!currentMonthReport) {
-             const currentMonthTotalIncome = combinedTransactions
-                .filter((t) => t.type === 'income')
-                .reduce((acc, t) => acc + t.amount, 0);
-              const currentMonthTotalExpense = combinedTransactions
-                .filter((t) => t.type === 'expense')
-                .reduce((acc, t) => acc + t.amount, 0);
-        }
-    }
-    setAllMonthlyReports(reports);
-
-    // Prepare data for bar chart and cards
-    const busIncome = currentBusinessTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const busExpense = currentBusinessTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const persIncome = currentPersonalTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const persExpense = currentPersonalTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-
-    setBusinessIncome(busIncome);
-    setBusinessExpense(busExpense);
-    setPersonalIncome(persIncome);
-    setPersonalExpense(persExpense);
-
-    setChartData([
-        { name: 'Empresarial', Entradas: busIncome, Gastos: busExpense },
-        { name: 'Pessoal', Entradas: persIncome, Gastos: persExpense },
-    ]);
-
-
-  }, [selectedMonth]);
+    }, [allBusinessTransactions, allPersonalTransactions]);
   
-  const displayedTransactions = allTransactions;
+  const displayedTransactions = useMemo(() => {
+      return [...(businessTransactions || []), ...(personalTransactions || [])]
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [businessTransactions, personalTransactions]);
+
+  const businessIncome = useMemo(() => (businessTransactions || []).filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0), [businessTransactions]);
+  const businessExpense = useMemo(() => (businessTransactions || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0), [businessTransactions]);
+  const personalIncome = useMemo(() => (personalTransactions || []).filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0), [personalTransactions]);
+  const personalExpense = useMemo(() => (personalTransactions || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0), [personalTransactions]);
 
   const totalIncome = businessIncome + personalIncome;
   const totalExpense = businessExpense + personalExpense;
   const netProfit = totalIncome - totalExpense;
-  
-  const uniqueMonths = [...new Set(allMonthlyReports.map(r => r.month))].sort().reverse();
 
+  const chartData = [
+        { name: 'Empresarial', Entradas: businessIncome, Gastos: businessExpense },
+        { name: 'Pessoal', Entradas: personalIncome, Gastos: personalExpense },
+    ];
+    
+  const isLoading = isLoadingAllBusiness || isLoadingAllPersonal || isLoadingBusinessMonth || isLoadingPersonalMonth;
 
   return (
     <div className="space-y-6">
@@ -162,14 +146,13 @@ export default function GeneralCashFlowPage() {
          <div className="flex items-center gap-4">
           <Label>Ver Relatório</Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={getCurrentMonthKey()}>Mês Atual</SelectItem>
-              {uniqueMonths.map(month => (
+              {allMonths.map(month => (
                 <SelectItem key={month} value={month}>
-                  {month}
+                  {getMonthName(month)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -187,13 +170,16 @@ export default function GeneralCashFlowPage() {
                 <ArrowUpCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
                 <CardContent className="space-y-2">
+                    {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                     <div className="text-2xl font-bold">
                     {totalIncome.toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
                     })}
                     </div>
+                    }
                     <Separator />
+                     {isLoading ? <div className='space-y-2 pt-1'><Skeleton className='h-4 w-full'/><Skeleton className='h-4 w-full'/></div> :
                     <div className="text-xs text-muted-foreground space-y-1">
                         <div className='flex justify-between items-center'>
                             <span className='flex items-center gap-1'><Briefcase className='h-3 w-3'/> Empresarial</span>
@@ -204,6 +190,7 @@ export default function GeneralCashFlowPage() {
                             <span>{personalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
                         </div>
                     </div>
+                    }
               </CardContent>
             </Card>
             <Card>
@@ -214,13 +201,16 @@ export default function GeneralCashFlowPage() {
                 <ArrowDownCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent className="space-y-2">
+                 {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                  <div className="text-2xl font-bold">
                   {totalExpense.toLocaleString('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
                   })}
                 </div>
+                }
                  <Separator />
+                    {isLoading ? <div className='space-y-2 pt-1'><Skeleton className='h-4 w-full'/><Skeleton className='h-4 w-full'/></div> :
                     <div className="text-xs text-muted-foreground space-y-1">
                         <div className='flex justify-between items-center'>
                             <span className='flex items-center gap-1'><Briefcase className='h-3 w-3'/> Empresarial</span>
@@ -231,6 +221,7 @@ export default function GeneralCashFlowPage() {
                             <span>{personalExpense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}</span>
                         </div>
                     </div>
+                    }
               </CardContent>
             </Card>
             <Card>
@@ -239,6 +230,7 @@ export default function GeneralCashFlowPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
+                 {isLoading ? <Skeleton className='h-8 w-3/4' /> :
                 <div
                   className={`text-2xl font-bold ${
                     netProfit >= 0 ? 'text-green-600' : 'text-red-600'
@@ -249,6 +241,7 @@ export default function GeneralCashFlowPage() {
                     currency: 'BRL',
                   })}
                 </div>
+                }
                  <p className="text-xs text-muted-foreground pt-2">
                     O balanço consolidado de suas finanças.
                 </p>
@@ -260,6 +253,7 @@ export default function GeneralCashFlowPage() {
               <CardTitle>Visão Geral Consolidada do Mês</CardTitle>
             </CardHeader>
             <CardContent>
+                {isLoading ? <div className='flex justify-center items-center h-[250px]'><Skeleton className='h-[250px] w-full' /></div> :
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
                     <XAxis type="number" tickFormatter={(value) => `R$${value/1000}k`} />
@@ -270,6 +264,7 @@ export default function GeneralCashFlowPage() {
                     <Bar dataKey="Gastos" fill="#ef4444" />
                 </BarChart>
               </ResponsiveContainer>
+              }
             </CardContent>
           </Card>
       </div>
@@ -290,10 +285,19 @@ export default function GeneralCashFlowPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayedTransactions.length === 0 ? (
+              {isLoading ? (
+                Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className='h-5 w-20' /></TableCell>
+                        <TableCell><Skeleton className='h-5 w-40' /></TableCell>
+                        <TableCell><Skeleton className='h-5 w-16' /></TableCell>
+                        <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
+                    </TableRow>
+                ))
+              ) : displayedTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
-                    Nenhuma transação registrada para {selectedMonth}.
+                    Nenhuma transação registrada para {getMonthName(selectedMonth)}.
                   </TableCell>
                 </TableRow>
               ) : (
