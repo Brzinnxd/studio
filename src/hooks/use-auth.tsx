@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { User, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { useFirebase, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
@@ -24,12 +24,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      // This logic will ensure the specified user is an admin.
+      // It checks on every auth state change, but only writes if necessary.
+      if (user && user.email === 'arthur.vieirask@gmail.com' && firestore) {
+        const userProfileDocRef = doc(firestore, 'users', user.uid);
+        const userProfileSnap = await getDoc(userProfileDocRef);
+        if (!userProfileSnap.exists() || !userProfileSnap.data()?.isAdmin) {
+             await setDoc(userProfileDocRef, { isAdmin: true }, { merge: true });
+        }
+      }
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, firestore]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
