@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { User, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { useFirebase, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
@@ -19,15 +19,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { auth } = useFirebase();
+  const { auth, isUserLoading: isAuthLoading } = useFirebase();
   const firestore = useFirestore();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -38,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
@@ -47,15 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const newUser = userCredential.user;
-    if (newUser) {
+    if (newUser && firestore) {
       const userProfileDocRef = doc(firestore, 'users', newUser.uid);
-      await setDoc(userProfileDocRef, {
+      const newUserProfile: UserProfile = {
         uid: newUser.uid,
-        email: newUser.email,
+        email: newUser.email || '',
         displayName: displayName,
         photoURL: newUser.photoURL || '',
         isAdmin: false, // Default to not admin
-      });
+      };
+      await setDoc(userProfileDocRef, newUserProfile);
     }
   };
 
@@ -63,10 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   };
 
+  const isLoading = isAuthLoading || (!!user && isProfileLoading);
+
   const value = {
     user,
-    userProfile,
-    isLoading: isLoading || (!!user && userProfile === undefined),
+    userProfile: userProfile ?? null,
+    isLoading,
     signIn,
     signUp,
     signOut,
