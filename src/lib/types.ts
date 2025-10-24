@@ -15,3 +15,21 @@ export type UserProfile = {
     photoURL?: string;
     isAdmin: boolean;
 };
+
+export type Transaction = {
+  id: string;
+  name: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  date: string;
+};
+
+export type Customer = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+};
