@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useMemo, useEffect, type ReactNode } from 'react';
+import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { initiateAnonymousSignIn } from './non-blocking-login';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { AuthProvider } from '@/hooks/use-auth';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -16,17 +15,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return initializeFirebase();
   }, []); // Empty dependency array ensures this runs only once on mount
 
-  useEffect(() => {
-    const auth = getAuth(firebaseServices.firebaseApp);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        initiateAnonymousSignIn(auth);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [firebaseServices.firebaseApp]);
-
 
   return (
     <FirebaseProvider
@@ -34,7 +22,9 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
     >
-      {children}
+      <AuthProvider>
+        {children}
+      </AuthProvider>
     </FirebaseProvider>
   );
 }

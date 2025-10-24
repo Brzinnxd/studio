@@ -227,6 +227,37 @@
         "type",
         "date"
       ]
+    },
+     "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User Profile",
+      "type": "object",
+      "description": "Represents a user's profile in the system.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique user ID from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the user's profile picture."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Flag to indicate if the user has administrative privileges."
+        }
+      },
+      "required": ["uid", "email", "isAdmin"]
     }
   },
   "auth": {
@@ -237,6 +268,22 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information, including admin status.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user (equal to the user's UID)."
+            }
+          ]
+        }
+      },
       {
         "path": "products/{productId}",
         "definition": {
@@ -362,6 +409,6 @@
         }
       }
     ],
-    "reasoning": "This Firestore data structure is designed for Angel's Sweets Emporium, focusing on product presentation, order management, and customer profiles. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is achieved by separating user-specific data (orders) from global data (products and trending flavors). Access Modeling utilizes path-based ownership for user-related data (orders) and standard collections for products and trending flavors.\n\nSpecifically:\n\n*   `products`: Stores product information globally accessible for display.\n*   `customers/{customerId}`: Stores customer profiles. Orders are stored as a subcollection to maintain ownership and improve query performance for a specific customer's order history.\n*   `customers/{customerId}/orders/{orderId}`: Stores orders associated with specific customers, using path-based ownership.\n*   `trending_flavors`: Stores trending flavor combinations globally for display and analysis.\n*   `business_transactions` & `personal_transactions`: Root collections to store financial transactions, separated by context. This allows for simple queries and security rules for financial management.\n\nThis design supports QAPs as follows:\n\n*   Products and trending flavors are stored in root collections, allowing list operations with simple security rules.\n*   Customer data and order data are separated, ensuring secure `list` operations for customer-owned orders via path-based rules without exposing other customer's data.\n\nAuthorization Independence is maintained by:\n\n*   Orders are stored as a subcollection of `/customers/{customerId}/orders/{orderId}`, so security rules can directly verify `request.auth.uid == customerId` without needing to `get()` the customer document."
+    "reasoning": "This Firestore data structure is designed for Angel's Sweets Emporium, focusing on product presentation, order management, and customer profiles. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is achieved by separating user-specific data (orders, user profiles) from global data (products and trending flavors). Access Modeling utilizes path-based ownership for user-related data (orders) and standard collections for products, user profiles, and trending flavors.\n\nSpecifically:\n\n*   `users`: Stores user profiles, including an `isAdmin` flag for role-based access control.\n*   `products`: Stores product information globally accessible for display.\n*   `customers/{customerId}`: Stores customer profiles. Orders are stored as a subcollection to maintain ownership and improve query performance for a specific customer's order history.\n*   `customers/{customerId}/orders/{orderId}`: Stores orders associated with specific customers, using path-based ownership.\n*   `trending_flavors`: Stores trending flavor combinations globally for display and analysis.\n*   `business_transactions` & `personal_transactions`: Root collections to store financial transactions, separated by context. This allows for simple queries and security rules for financial management.\n\nThis design supports QAPs as follows:\n\n*   Products and trending flavors are stored in root collections, allowing list operations with simple security rules.\n*   Customer data and order data are separated, ensuring secure `list` operations for customer-owned orders via path-based rules without exposing other customer's data.\n\nAuthorization Independence is maintained by:\n\n*   Orders are stored as a subcollection of `/customers/{customerId}/orders/{orderId}`, so security rules can directly verify `request.auth.uid == customerId` without needing to `get()` the customer document."
   }
 }
