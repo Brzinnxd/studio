@@ -3,13 +3,13 @@ import './globals.css';
 import {
   Sidebar,
   SidebarInset,
-  SidebarProvider,
 } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/main-nav';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/context/cart-context';
 import { FirebaseClientProvider } from '@/firebase';
+import { ClientSidebarProvider } from '@/context/client-sidebar-provider';
 
 export const metadata: Metadata = {
   title: "Angel's Sweets Emporium",
@@ -38,7 +38,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           <CartProvider>
-            <SidebarProvider>
+            <ClientSidebarProvider>
               <Sidebar>
                 <MainNav />
               </Sidebar>
@@ -46,7 +46,7 @@ export default function RootLayout({
                 <Header />
                 <main className="p-4 lg:p-6">{children}</main>
               </SidebarInset>
-            </SidebarProvider>
+            </ClientSidebarProvider>
           </CartProvider>
         </FirebaseClientProvider>
         <Toaster />
@@ -54,5 +54,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
