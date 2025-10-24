@@ -35,6 +35,7 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Select,
@@ -43,6 +44,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -130,6 +142,14 @@ export default function CashFlowPage() {
     const docRef = doc(firestore, 'business_transactions', id);
     deleteDocumentNonBlocking(docRef);
   };
+
+  const handleClearMonth = () => {
+    if (!firestore || !transactions) return;
+    transactions.forEach(t => {
+        const docRef = doc(firestore, 'business_transactions', t.id);
+        deleteDocumentNonBlocking(docRef);
+    });
+  }
   
   const displayedTransactions = transactions || [];
 
@@ -163,19 +183,41 @@ export default function CashFlowPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold font-headline">Fluxo de Caixa Empresarial</h1>
          <div className="flex items-center gap-4">
-          <Label>Ver Relatório</Label>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Selecione o mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {allMonths.map(month => (
-                <SelectItem key={month} value={month}>
-                  {getMonthName(month)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className='flex items-center gap-2'>
+            <Label>Ver Relatório</Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {allMonths.map(month => (
+                  <SelectItem key={month} value={month}>
+                    {getMonthName(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+           <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={!displayedTransactions || displayedTransactions.length === 0}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Limpar Mês
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className='flex items-center gap-2'><AlertTriangle /> Tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente todas as <strong>{displayedTransactions.length} transações</strong> de <strong>{getMonthName(selectedMonth)}</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearMonth}>Confirmar Exclusão</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
