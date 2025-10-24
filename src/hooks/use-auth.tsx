@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email || '',
         displayName: displayName,
         photoURL: newUser.photoURL || '',
-        isAdmin: false, // Default to not admin
+        isAdmin: email === 'arthur.vieirask@gmail.com', // Set admin status based on email
       };
       await setDoc(userProfileDocRef, newUserProfile);
     }
