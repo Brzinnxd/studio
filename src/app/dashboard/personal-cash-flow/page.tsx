@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -55,9 +55,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Transaction = {
@@ -68,6 +65,13 @@ type Transaction = {
   type: 'income' | 'expense';
   date: string;
 };
+
+const initialTransactions: Transaction[] = [
+    { id: '1', name: 'Salário', description: 'Pagamento mensal', amount: 5000.00, type: 'income', date: new Date().toISOString() },
+    { id: '2', name: 'Aluguel', description: 'Pagamento do apto', amount: 1500.00, type: 'expense', date: new Date().toISOString() },
+    { id: '3', name: 'Supermercado', description: 'Compras do mês', amount: 800.00, type: 'expense', date: new Date().toISOString() },
+];
+
 
 const getCurrentMonthKey = () => {
   const now = new Date();
@@ -84,46 +88,28 @@ const getMonthName = (monthKey: string) => {
 
 
 export default function PersonalCashFlowPage() {
-  const firestore = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
-  const [allMonths, setAllMonths] = useState<string[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
 
-  const transactionsCollection = useMemoFirebase(() => {
-    return firestore ? collection(firestore, 'personal_transactions') : null;
-  }, [firestore]);
-
-  const { data: allTransactions, isLoading: isLoadingAll } = useCollection<Transaction>(transactionsCollection);
-
-  const monthlyTransactionsQuery = useMemoFirebase(() => {
-    if (!transactionsCollection) return null;
-    const [year, month] = selectedMonth.split('-');
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-    return query(transactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
-  }, [transactionsCollection, selectedMonth]);
-
-  const { data: transactions, isLoading: isLoadingMonth } = useCollection<Transaction>(monthlyTransactionsQuery);
-
-  useEffect(() => {
-    if (allTransactions) {
-      const months = new Set(allTransactions.map(t => t.date.substring(0, 7)));
-      const currentMonth = getCurrentMonthKey();
-      if (!months.has(currentMonth)) {
-        months.add(currentMonth);
-      }
-      setAllMonths(Array.from(months).sort().reverse());
+  const allMonths = useMemo(() => {
+    const months = new Set(transactions.map(t => t.date.substring(0, 7)));
+    const currentMonth = getCurrentMonthKey();
+    if (!months.has(currentMonth)) {
+      months.add(currentMonth);
     }
-  }, [allTransactions]);
+    return Array.from(months).sort().reverse();
+  }, [transactions]);
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount || !transactionsCollection) return;
+    if (!name || !amount) return;
 
-    const newTransaction = {
+    const newTransaction: Transaction = {
+      id: new Date().getTime().toString(),
       name,
       description,
       amount: parseFloat(amount),
@@ -131,30 +117,26 @@ export default function PersonalCashFlowPage() {
       date: new Date().toISOString(),
     };
     
-    addDocumentNonBlocking(transactionsCollection, newTransaction);
+    setTransactions(prev => [newTransaction, ...prev]);
     setName('');
     setDescription('');
     setAmount('');
   };
 
   const handleDeleteTransaction = (id: string) => {
-    if (!firestore) return;
-    const docRef = doc(firestore, 'personal_transactions', id);
-    deleteDocumentNonBlocking(docRef);
+    setTransactions(prev => prev.filter(t => t.id !== id));
   };
   
   const handleClearMonth = () => {
-    if (!firestore || !transactions) return;
-    transactions.forEach(t => {
-        const docRef = doc(firestore, 'personal_transactions', t.id);
-        deleteDocumentNonBlocking(docRef);
-    });
+    setTransactions([]);
   }
 
-  const displayedTransactions = transactions || [];
+  const displayedTransactions = useMemo(() => {
+    return transactions.filter(t => t.date.substring(0, 7) === selectedMonth);
+  }, [transactions, selectedMonth]);
 
   const { totalIncome, totalExpense, netProfit } = useMemo(() => {
-    const txs = transactions || [];
+    const txs = displayedTransactions || [];
     const income = txs
       .filter((t) => t.type === 'income')
       .reduce((acc, t) => acc + t.amount, 0);
@@ -166,7 +148,7 @@ export default function PersonalCashFlowPage() {
       totalExpense: expense,
       netProfit: income - expense,
     };
-  }, [transactions]);
+  }, [displayedTransactions]);
 
 
   const chartData = [
@@ -175,7 +157,7 @@ export default function PersonalCashFlowPage() {
   ];
   
   const COLORS = ['#22c55e', '#ef4444'];
-  const isLoading = isLoadingAll || isLoadingMonth;
+  const isLoading = false;
 
   return (
     <div className="space-y-6">
@@ -454,3 +436,5 @@ export default function PersonalCashFlowPage() {
     </div>
   );
 }
+
+    

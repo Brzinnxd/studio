@@ -42,8 +42,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -71,43 +69,16 @@ const getMonthName = (monthKey: string) => {
 
 
 export default function GeneralCashFlowPage() {
-    const firestore = useFirestore();
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
-    const [allMonths, setAllMonths] = useState<string[]>([]);
-
-    const businessTransactionsCollection = useMemoFirebase(() => {
-        return firestore ? collection(firestore, 'business_transactions') : null;
-    }, [firestore]);
-
-    const personalTransactionsCollection = useMemoFirebase(() => {
-        return firestore ? collection(firestore, 'personal_transactions') : null;
-    }, [firestore]);
+    const [allMonths, setAllMonths] = useState<string[]>([getCurrentMonthKey()]);
     
-    const {data: allBusinessTransactions, isLoading: isLoadingAllBusiness } = useCollection<Transaction>(businessTransactionsCollection);
-    const {data: allPersonalTransactions, isLoading: isLoadingAllPersonal } = useCollection<Transaction>(personalTransactionsCollection);
-
-    const monthlyBusinessQuery = useMemoFirebase(() => {
-        if (!businessTransactionsCollection) return null;
-        const [year, month] = selectedMonth.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-        return query(businessTransactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
-    }, [businessTransactionsCollection, selectedMonth]);
-
-    const monthlyPersonalQuery = useMemoFirebase(() => {
-        if (!personalTransactionsCollection) return null;
-        const [year, month] = selectedMonth.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-        return query(personalTransactionsCollection, where('date', '>=', startDate.toISOString()), where('date', '<=', endDate.toISOString()));
-    }, [personalTransactionsCollection, selectedMonth]);
-
-    const { data: businessTransactions, isLoading: isLoadingBusinessMonth } = useCollection<Transaction>(monthlyBusinessQuery);
-    const { data: personalTransactions, isLoading: isLoadingPersonalMonth } = useCollection<Transaction>(monthlyPersonalQuery);
-
+    // For now, we will use static data.
+    const businessTransactions: Transaction[] = [];
+    const personalTransactions: Transaction[] = [];
+    const isLoading = false;
 
     useEffect(() => {
-        const allTxs = [...(allBusinessTransactions || []), ...(allPersonalTransactions || [])];
+        const allTxs = [...(businessTransactions || []), ...(personalTransactions || [])];
         if (allTxs.length > 0) {
             const months = new Set(allTxs.map(t => t.date.substring(0, 7)));
              const currentMonth = getCurrentMonthKey();
@@ -116,16 +87,17 @@ export default function GeneralCashFlowPage() {
             }
             setAllMonths(Array.from(months).sort().reverse());
         }
-    }, [allBusinessTransactions, allPersonalTransactions]);
+    }, [businessTransactions, personalTransactions]);
   
   const displayedTransactions = useMemo(() => {
       return [...(businessTransactions || []), ...(personalTransactions || [])]
+        .filter(t => t.date.substring(0, 7) === selectedMonth)
         .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [businessTransactions, personalTransactions]);
+  }, [businessTransactions, personalTransactions, selectedMonth]);
 
   const { businessIncome, businessExpense, personalIncome, personalExpense } = useMemo(() => {
-    const bTxs = businessTransactions || [];
-    const pTxs = personalTransactions || [];
+    const bTxs = businessTransactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
+    const pTxs = personalTransactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
 
     return {
       businessIncome: bTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
@@ -133,7 +105,7 @@ export default function GeneralCashFlowPage() {
       personalIncome: pTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
       personalExpense: pTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
     };
-  }, [businessTransactions, personalTransactions]);
+  }, [businessTransactions, personalTransactions, selectedMonth]);
 
   const totalIncome = businessIncome + personalIncome;
   const totalExpense = businessExpense + personalExpense;
@@ -143,8 +115,6 @@ export default function GeneralCashFlowPage() {
         { name: 'Empresarial', Entradas: businessIncome, Gastos: businessExpense },
         { name: 'Pessoal', Entradas: personalIncome, Gastos: personalExpense },
     ];
-    
-  const isLoading = isLoadingAllBusiness || isLoadingAllPersonal || isLoadingBusinessMonth || isLoadingPersonalMonth;
 
   return (
     <div className="space-y-6">
@@ -341,3 +311,5 @@ export default function GeneralCashFlowPage() {
     </div>
   );
 }
+
+    
