@@ -112,8 +112,8 @@ export default function GeneralCashFlowPage() {
   const netProfit = totalIncome - totalExpense;
 
   const chartData = [
-        { name: 'Empresarial', Entradas: businessIncome, Gastos: businessExpense },
-        { name: 'Pessoal', Entradas: personalIncome, Gastos: personalExpense },
+        { name: 'Empresarial', Receitas: businessIncome, Despesas: businessExpense },
+        { name: 'Pessoal', Receitas: personalIncome, Despesas: personalExpense },
     ];
 
   return (
@@ -142,7 +142,7 @@ export default function GeneralCashFlowPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total de Entradas
+                  Total de Receitas
                 </CardTitle>
                 <ArrowUpCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
@@ -173,7 +173,7 @@ export default function GeneralCashFlowPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total de Gastos
+                  Total de Despesas
                 </CardTitle>
                 <ArrowDownCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
@@ -237,8 +237,8 @@ export default function GeneralCashFlowPage() {
                     <YAxis type="category" dataKey="name" />
                     <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                     <Legend />
-                    <Bar dataKey="Entradas" fill="#22c55e" />
-                    <Bar dataKey="Gastos" fill="#ef4444" />
+                    <Bar dataKey="Receitas" fill="#22c55e" />
+                    <Bar dataKey="Despesas" fill="#ef4444" />
                 </BarChart>
               </ResponsiveContainer>
               }
@@ -288,7 +288,7 @@ export default function GeneralCashFlowPage() {
                       <Badge
                         variant={t.type === 'income' ? 'default' : 'destructive'}
                       >
-                        {t.type === 'income' ? 'Entrada' : 'Gasto'}
+                        {t.type === 'income' ? 'Receita' : 'Despesa'}
                       </Badge>
                     </TableCell>
                     <TableCell

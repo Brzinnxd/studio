@@ -153,8 +153,8 @@ export default function CashFlowPage() {
 
 
   const chartData = [
-    { name: 'Entradas', value: totalIncome },
-    { name: 'Gastos', value: totalExpense },
+    { name: 'Receitas', value: totalIncome },
+    { name: 'Despesas', value: totalExpense },
   ];
 
   const COLORS = ['#22c55e', '#ef4444'];
@@ -209,7 +209,7 @@ export default function CashFlowPage() {
           <CardHeader>
             <CardTitle>Adicionar Transação</CardTitle>
             <CardDescription>
-              Registre uma nova entrada ou gasto no mês atual.
+              Registre uma nova receita ou despesa no mês atual.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleAddTransaction}>
@@ -255,11 +255,11 @@ export default function CashFlowPage() {
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="income" id="income" />
-                    <Label htmlFor="income">Entrada</Label>
+                    <Label htmlFor="income">Receita</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="expense" id="expense" />
-                    <Label htmlFor="expense">Gasto</Label>
+                    <Label htmlFor="expense">Despesa</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -277,7 +277,7 @@ export default function CashFlowPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total de Entradas
+                  Total de Receitas
                 </CardTitle>
                 <ArrowUpCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
@@ -295,7 +295,7 @@ export default function CashFlowPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Total de Gastos
+                  Total de Despesas
                 </CardTitle>
                 <ArrowDownCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
@@ -406,7 +406,7 @@ export default function CashFlowPage() {
                       <Badge
                         variant={t.type === 'income' ? 'default' : 'destructive'}
                       >
-                        {t.type === 'income' ? 'Entrada' : 'Gasto'}
+                        {t.type === 'income' ? 'Receita' : 'Despesa'}
                       </Badge>
                     </TableCell>
                     <TableCell
