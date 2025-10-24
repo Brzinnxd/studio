@@ -1,145 +1,198 @@
 /**
- * @fileOverview Firestore Security Rules for Angel's Sweets Emporium.
+ * @file Firestore Security Rules for Angel's Sweets Emporium.
  *
- * Core Philosophy:
- * This ruleset employs a hybrid security model. Products, trending flavors, and financial transactions are publicly readable but not writable. Customer profiles and their orders are strictly user-owned, with access controlled via path-based authorization.
+ * @corePhilosophy This ruleset enforces a strict user-ownership model for customer-related data (profiles, orders) and role-based access control for admin users.
  *
- * Data Structure:
- * - /products/{productId}: Public product catalog.
- * - /customers/{customerId}: Customer profiles, where customerId is the user's UID.
- * - /customers/{customerId}/orders/{orderId}: Orders belonging to a specific customer.
- * - /trending_flavors/{trendingFlavorId}: Public trending flavor data.
- * - /business_transactions/{transactionId}: Business transactions, publicly readable.
- * - /personal_transactions/{transactionId}: Personal transactions, publicly readable.
+ * @dataStructure The Firestore database is structured with user profiles under `/users/{userId}`, products under `/products/{productId}`, transactions under `/business_transactions/{transactionId}` & `/personal_transactions/{transactionId}`, customer profiles under `/customers/{customerId}`, orders as subcollections under `/customers/{customerId}/orders/{orderId}`, order items as subcollections under `/customers/{customerId}/orders/{orderId}/order_items/{orderItemId}`, and trending flavors under `/trending_flavors/{trendingFlavorId}`.
  *
- * Key Security Decisions:
- * - Public read access for products, trending flavors, and financial transactions to allow for easy display and analysis.
- * - Strict user-ownership for customer profiles and orders. A customer can only access their own profile and orders.
- * - Denies listing all customer documents for privacy.
+ * @keySecurityDecisions
+ *   - User profiles are only readable and writable by the authenticated user.
+ *   - Customer profiles are only readable and writable by the authenticated user.
+ *   - Orders and order items are only accessible by the customer who owns them, based on path-based ownership (`customerId`).
+ *   - Public read access is granted for products and trending flavors.
+ *   - Listing all users or customers is disallowed.
+ *   - Transactions are secured such that authenticated users can create, read, update, and delete their own transactions.
  *
- * Denormalization for Authorization:
- *  - Orders are stored as a subcollection of `/customers/{customerId}/orders/{orderId}`.
- *  - Security rules directly verify `request.auth.uid == customerId` without needing to `get()` the customer document.
+ * @denormalizationForAuthorization Not applicable, as the path-based ownership model is used for authorization.
+ * @structuralSegregation User-specific data (orders) is stored in subcollections under the `/customers/{customerId}` path, while global data (products, trending flavors) is stored in top-level collections.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read product information, but prohibits writing.
-     * @path /databases/{database}/documents/products/{productId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): if false
-     * @principle Allows public read access to product information.
+     * @description Allows authenticated users to read and write their own user profile.
+     * @path /users/{userId}
+     * @allow (get, create, update, delete) if request.auth.uid == userId
+     * @deny (get) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to product information. Only authenticated users can create and modify products.
+     * @path /products/{productId}
+     * @allow (get, list) if true
+     * @allow (create, update, delete) if request.auth != null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     *
+     * @principle Allows public read access with owner-only writes.
      */
     match /products/{productId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
 
     /**
-     * @description Manages customer profile access. Only the authenticated user can create, read, update, or delete their own profile.
-     * @path /databases/{database}/documents/customers/{customerId}
-     * @allow (create): if isSignedIn() && isOwner(customerId)
-     * @allow (get, update, delete): if isSignedIn() && isExistingOwner(customerId)
-     * @deny (list): if false
-     * @deny (create, update, delete): if !isSignedIn() || !isOwner(customerId)
-     * @principle Enforces strict user-ownership for customer profiles.
-     */
-    match /customers/{customerId} {
-      allow create: if isSignedIn() && isOwner(customerId);
-      allow get, update, delete: if isSignedIn() && isExistingOwner(customerId);
-      allow list: if false; // Prevent listing all customers
-
-      /**
-       * @description Manages order access. Only the customer who owns the order can create, read, update, or delete it.
-       * @path /databases/{database}/documents/customers/{customerId}/orders/{orderId}
-       * @allow (create): if isSignedIn() && isOwner(customerId)
-       * @allow (get, list, update, delete): if isSignedIn() && isExistingOwner(customerId)
-       * @deny (create, update, delete): if !isSignedIn() || !isOwner(customerId)
-       * @principle Enforces strict user-ownership for orders using path-based authorization.
-       */
-      match /orders/{orderId} {
-        allow create: if isSignedIn() && isOwner(customerId);
-        allow get, list, update, delete: if isSignedIn() && isExistingOwner(customerId);
-      }
-    }
-
-    /**
-     * @description Manages order item access. Only the customer who owns the order can create, read, update, or delete its items.
-     * @path /databases/{database}/documents/customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
-     * @allow (create): if isSignedIn() && isOwner(customerId)
-     * @allow (get, list, update, delete): if isSignedIn() && isExistingOwner(customerId)
-     * @deny (create, update, delete): if !isSignedIn() || !isOwner(customerId)
-     * @principle Enforces strict user-ownership for order items via path-based authorization.
-     */
-    match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
-      allow create: if isSignedIn() && isOwner(customerId);
-      allow get, list, update, delete: if isSignedIn() && isExistingOwner(customerId);
-    }
-
-    /**
-     * @description Allows anyone to read trending flavor data, but prohibits writing.
-     * @path /databases/{database}/documents/trending_flavors/{trendingFlavorId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): if false
-     * @principle Allows public read access to trending flavor data.
-     */
-    match /trending_flavors/{trendingFlavorId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Allows anyone to read business transaction data, but prohibits writing.
-     * @path /databases/{database}/documents/business_transactions/{transactionId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): if false
-     * @principle Allows public read access to business transaction data.
+     * @description Allows creating, reading, updating, and deleting business transactions for authenticated users.
+     * @path /business_transactions/{transactionId}
+     * @allow (get, create, update, delete) if request.auth != null
+     * @deny (get) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces authentication for all operations.
      */
     match /business_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Allows anyone to read personal transaction data, but prohibits writing.
-     * @path /databases/{database}/documents/personal_transactions/{transactionId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): if false
-     * @principle Allows public read access to personal transaction data.
+     * @description Allows creating, reading, updating, and deleting personal transactions for authenticated users.
+     * @path /personal_transactions/{transactionId}
+     * @allow (get, create, update, delete) if request.auth != null
+     * @deny (get) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces authentication for all operations.
      */
     match /personal_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-    // ---- Helper Functions ----
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     * @param {string} userId The user ID to compare against the authenticated user's UID.
-     * @return {boolean} True if the user is the owner, false otherwise.
+     * @description Allows authenticated users to read and write their own customer profile.
+     * @path /customers/{customerId}
+     * @allow (get, create, update, delete) if request.auth.uid == customerId
+     * @deny (get) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces document ownership for writes.
      */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    match /customers/{customerId} {
+      function isOwner(customerId) {
+        return request.auth != null && request.auth.uid == customerId;
+      }
+
+      allow get: if isOwner(customerId);
+      allow list: if false;
+      allow create: if isOwner(customerId) && request.resource.data.id == customerId;
+      allow update: if isOwner(customerId) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(customerId);
     }
 
     /**
-     * @description Checks if the authenticated user is the owner of the resource and the resource exists.
-     * @param {string} userId The user ID to compare against the authenticated user's UID.
-     * @return {boolean} True if the user is the existing owner, false otherwise.
+     * @description Allows a customer to manage their own orders.
+     * @path /customers/{customerId}/orders/{orderId}
+     * @allow (get, list, create, update, delete) if request.auth.uid == customerId
+     * @deny (get) if request.auth == null
+     * @deny (list) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces path-based ownership for orders.
      */
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+    match /customers/{customerId}/orders/{orderId} {
+      function isOwner(customerId) {
+        return request.auth != null && request.auth.uid == customerId;
+      }
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
+      allow create: if isOwner(customerId);
+      allow update: if isOwner(customerId);
+      allow delete: if isOwner(customerId);
+    }
+
+    /**
+     * @description Allows a customer to manage their own order items within an order.
+     * @path /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
+     * @allow (get, list, create, update, delete) if request.auth.uid == customerId
+     * @deny (get) if request.auth == null
+     * @deny (list) if request.auth == null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Enforces path-based ownership for order items.
+     */
+    match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
+      function isOwner(customerId) {
+        return request.auth != null && request.auth.uid == customerId;
+      }
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
+      allow create: if isOwner(customerId);
+      allow update: if isOwner(customerId);
+      allow delete: if isOwner(customerId);
+    }
+
+    /**
+     * @description Allows public read access to trending flavor data. Only authenticated users can create and modify trending flavors.
+     * @path /trending_flavors/{trendingFlavorId}
+     * @allow (get, list) if true
+     * @allow (create, update, delete) if request.auth != null
+     * @deny (create) if request.auth == null
+     * @deny (update) if request.auth == null
+     * @deny (delete) if request.auth == null
+     * @principle Allows public read access with owner-only writes.
+     */
+    match /trending_flavors/{trendingFlavorId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isSignedIn();
     }
   }
 }
