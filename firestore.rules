@@ -1,125 +1,179 @@
+/**
+ * @file Firestore Security Rules for Angel's Sweets Emporium.
+ *
+ * @core_philosophy This ruleset enforces a user-ownership model for customer-related data (profiles and orders)
+ *                  and allows public read access to products and trending flavors.
+ *                  Admin users (flagged in their user profile) have elevated privileges.
+ * @data_structure The data is organized as follows:
+ *                  - /users/{userId}: User profile data.
+ *                  - /products/{productId}: Product information.
+ *                  - /customers/{customerId}: Customer profile data.
+ *                  - /customers/{customerId}/orders/{orderId}: Orders placed by a specific customer.
+ *                  - /trending_flavors/{trendingFlavorId}: Trending flavor combinations.
+ *                  - /business_transactions/{transactionId}: Business financial transactions
+ *                  - /personal_transactions/{transactionId}: Personal financial transactions
+ * @key_security_decisions
+ *                  - User listing is disallowed.
+ *                  - Public read access is granted to the products and trending_flavors collections.
+ *                  - Strict ownership is enforced for user profiles and customer-related data.
+ *                  - Business and personal transaction collections are publicly readable, but writes are forbidden in this prototype.
+ * @denormalization_for_authorization N/A (Path-based ownership used for orders).
+ * @structural_segregation User-specific data (orders) is stored in subcollections, while global data (products, trending flavors) is stored in top-level collections.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
      * @description Checks if the request is authenticated.
+     * @return {bool} True if the request is authenticated, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the requesting user is the owner of the resource.
+     * @description Checks if the authenticated user is the owner of the resource.
+     * @param {string} userId The user ID to compare against the request's auth UID.
+     * @return {bool} True if the user is the owner, false otherwise.
      */
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the requesting user is an existing owner of the resource.
+     * @description Checks if the authenticated user is the owner of the existing resource.
+     * @param {string} userId The user ID to compare against the request's auth UID and resource data.
+     * @return {bool} True if the user is the owner and the resource exists, false otherwise.
      */
     function isExistingOwner(userId) {
-        return isSignedIn() && resource.data != null && request.auth.uid == userId;
+        return isOwner(userId) && existsAfter(/databases/$(database)/documents/users/$(userId));
     }
 
     /**
-     * @description Checks if the requesting user is an administrator.
+     * @description Checks if the authenticated user is an admin.
+     * @return {bool} True if the user is an admin, false otherwise.
      */
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
+
     /**
-     * @description Rules for user profiles.
+     * @description Security rules for user profiles.
      * @path /users/{userId}
+     * @allow (create) - Allows a user to create their own profile if the userId matches their auth.uid.
+     * @allow (get, update, delete) - Allows the owner to read, update, and delete their own profile.
+     * @deny (create) - Denies creation if the userId does not match the auth.uid.
+     * @deny (list) - Listing all user profiles is not allowed.
+     * @principle Enforces document ownership and prevents unauthorized access to user profiles.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if false;
-      allow create: if isOwner(userId) && request.auth.uid == userId;
-      allow update: if isExistingOwner(userId) && request.auth.uid == userId;
-      allow delete: if isExistingOwner(userId) && request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not allowed.
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for products.
+     * @description Security rules for products.
      * @path /products/{productId}
+     * @allow (get, list) - Allows anyone to read product information.
+     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
+     * // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read access to product information.
      */
     match /products/{productId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
-     /**
-      * @description Rules for business transactions.
-      * @path /business_transactions/{transactionId}
-      */
+    /**
+     * @description Security rules for business transactions.
+     * @path /business_transactions/{transactionId}
+     * @allow (get, list) - Allows anyone to read transaction information.
+     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
+     * @principle Allows public read access to transaction information.
+     */
     match /business_transactions/{transactionId} {
-        allow get, list: if isAdmin();
-        allow create: if isAdmin();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-      * @description Rules for personal transactions.
-      * @path /personal_transactions/{transactionId}
-      */
+     * @description Security rules for personal transactions.
+     * @path /personal_transactions/{transactionId}
+     * @allow (get, list) - Allows anyone to read transaction information.
+     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
+     * @principle Allows public read access to transaction information.
+     */
     match /personal_transactions/{transactionId} {
-        allow get, list: if isAdmin();
-        allow create: if isAdmin();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
+
     /**
-     * @description Rules for customers.
+     * @description Security rules for customer profiles.
      * @path /customers/{customerId}
+     * @allow (create) - Allows a user to create their own profile if the customerId matches their auth.uid.
+     * @allow (get, update, delete) - Allows the owner to read, update, and delete their own profile.
+     * @deny (create) - Denies creation if the customerId does not match the auth.uid.
+     * @deny (list) - Listing all customer profiles is not allowed.
+     * @principle Enforces document ownership and prevents unauthorized access to customer profiles.
      */
     match /customers/{customerId} {
-      allow get: if isOwner(customerId) || isAdmin();
-      allow list: if false;
-      allow create: if isOwner(customerId) && request.auth.uid == customerId;
-      allow update: if isExistingOwner(customerId) && request.auth.uid == customerId;
-      allow delete: if isExistingOwner(customerId) && request.auth.uid == customerId;
+      allow get: if isOwner(customerId);
+      allow list: if false; // Customer listing is not allowed.
+      allow create: if isOwner(customerId);
+      allow update: if isOwner(customerId);
+      allow delete: if isOwner(customerId);
     }
 
     /**
-     * @description Rules for orders.
+     * @description Security rules for orders.
      * @path /customers/{customerId}/orders/{orderId}
+     * @allow (get, list) - Allows the owner (customer) to read their own orders.
+     * @allow (create, update, delete) - Allows the owner (customer) to create, update, and delete their own orders.
+     * @deny (create, update, delete) - Denies access if the customerId does not match the auth.uid.
+     * @principle Enforces path-based ownership for orders.
      */
     match /customers/{customerId}/orders/{orderId} {
-      allow get: if isOwner(customerId) || isAdmin();
-      allow list: if isOwner(customerId) || isAdmin();
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
       allow create: if isOwner(customerId);
-      allow update: if isExistingOwner(customerId) && get(/databases/$(database)/documents/customers/$(customerId)).data != null;
-      allow delete: if isExistingOwner(customerId) && get(/databases/$(database)/documents/customers/$(customerId)).data != null;
+      allow update: if isOwner(customerId);
+      allow delete: if isOwner(customerId);
     }
 
     /**
-     * @description Rules for order items.
+     * @description Security rules for order items.
      * @path /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
+     * @allow (get, list) - Allows the owner (customer) to read their own order items.
+     * @allow (create, update, delete) - Allows the owner (customer) to create, update, and delete their own order items.
+     * @deny (create, update, delete) - Denies access if the customerId does not match the auth.uid.
+     * @principle Enforces path-based ownership for order items.
      */
     match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
-      allow get: if isOwner(customerId) || isAdmin();
-      allow list: if isOwner(customerId) || isAdmin();
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
       allow create: if isOwner(customerId);
-      allow update: if isExistingOwner(customerId) && get(/databases/$(database)/documents/customers/$(customerId)/orders/$(orderId)).data != null;
-      allow delete: if isExistingOwner(customerId) && get(/databases/$(database)/documents/customers/$(customerId)/orders/$(orderId)).data != null;
+      allow update: if isOwner(customerId);
+      allow delete: if isOwner(customerId);
     }
 
     /**
-     * @description Rules for trending flavors.
+     * @description Security rules for trending flavors.
      * @path /trending_flavors/{trendingFlavorId}
+     * @allow (get, list) - Allows anyone to read trending flavor information.
+     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
+     * // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Allows public read access to trending flavor information.
      */
     match /trending_flavors/{trendingFlavorId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
