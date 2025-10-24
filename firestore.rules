@@ -1,74 +1,54 @@
 /**
- * @fileoverview Firestore Security Rules for Angel's Sweets Emporium.
+ * @file Firebase Security Rules for Angel's Sweets Emporium.
  *
- * Core Philosophy:
- * This ruleset employs a hybrid security model. Products, trending flavors, and transactions are accessible under certain conditions, while customer data and orders are strictly controlled by user ownership.
+ * @core_philosophy This ruleset enforces a strict user-ownership model for customer-related data (customers and their orders),
+ * while allowing public read access to product and trending flavor information. Financial transactions are not user-scoped and need further access control.
  *
- * Data Structure:
+ * @data_structure
  * - /products/{productId}: Public product catalog.
- * - /business_transactions/{transactionId}: Business-related financial transactions.
- * - /personal_transactions/{transactionId}: Personal financial transactions.
- * - /customers/{customerId}: Customer profiles, with customerId matching the user's UID.
- * - /customers/{customerId}/orders/{orderId}: Orders placed by a specific customer.
+ * - /customers/{customerId}: Customer profiles, where customerId MUST match the authenticated user's UID.
+ * - /customers/{customerId}/orders/{orderId}: Orders belonging to a specific customer.
  * - /customers/{customerId}/orders/{orderId}/order_items/{orderItemId}: Items within a specific order.
- * - /trending_flavors/{trendingFlavorId}: Public list of trending flavor combinations.
+ * - /trending_flavors/{trendingFlavorId}: Public trending flavor data.
+ * - /business_transactions/{transactionId}: Business financial transactions.
+ * - /personal_transactions/{transactionId}: Personal financial transactions.
  *
- * Key Security Decisions:
- * - Customers can only access their own profile and orders.
- * - Orders are secured using path-based ownership (customerId in the path must match the authenticated user's UID).
- * - Listing all customers or all orders across all customers is disallowed.
- * - Products and trending flavors are publicly readable but writes are not secured in this prototype (TODO).
- * - Business and personal transactions writes are not secured in this prototype (TODO).
+ * @key_security_decisions
+ * - Customers can only access their own profile data and orders.
+ * - Products and trending flavors are publicly readable.
+ * - Listing all customer profiles or all transactions is disallowed.
+ * - Write access to financial transactions is denied and must be explicitly granted.
+ * - Data validation is relaxed in this prototyping phase, focusing on authorization and relational integrity only.
  *
- * Denormalization for Authorization:
- * - The customerId is embedded in the path for orders, enabling direct authorization without additional reads.
+ * @denormalization_for_authorization
+ * - CustomerId in the /customers/{customerId}/orders/{orderId} path is used to enforce ownership, avoiding `get()` calls to the customer document.
+ *
+ * @structural_segregation
+ * - Customer-specific order data is stored in a subcollection to provide path-based authorization and efficient list operations.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows read-only access to product information.  Write access is not secured in this prototype.
+     * @description Allows public read access to product information. Write access is denied and requires further authorization.
      * @path /databases/{database}/documents/products/{productId}
-     * @allow get, list: if true;
-     * @deny create, update, delete: if false;
-     * @principle Public read, owner-only writes (TODO: Implement owner validation for writes).
+     * @allow (get, list) Allows any user to read product information.
+     * @deny (create, update, delete) Denies any user to write product information.
+     * @principle Public read, restricted write.
      */
     match /products/{productId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
+      allow create, update, delete: if false; // TODO: Add authorization logic for product management.
     }
 
     /**
-     * @description Allows managing business-related financial transactions. Access is not secured in this prototype.
-     * @path /databases/{database}/documents/business_transactions/{transactionId}
-     * @allow get, list: if true;
-     * @deny create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
-     */
-    match /business_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
-    }
-
-     /**
-     * @description Allows managing personal financial transactions. Access is not secured in this prototype.
-     * @path /databases/{database}/documents/personal_transactions/{transactionId}
-     * @allow get, list: if true;
-     * @deny create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
-     */
-    match /personal_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
-    }
-
-    /**
-     * @description Allows a customer to read and write their own profile data.
+     * @description Allows read/write access to a customer's profile only to the authenticated user with matching UID.
      * @path /databases/{database}/documents/customers/{customerId}
-     * @allow get: if isOwner(customerId);
-     * @allow create: if isOwner(customerId);
-     * @allow update: if isExistingOwner(customerId);
-     * @allow delete: if isExistingOwner(customerId);
-     * @deny list: if false;
+     * @allow (create) Allows a user to create their own customer profile if the customerId matches their UID.
+     * @allow (get, update, delete) Allows a user to read, update, or delete their own customer profile if the customerId matches their UID.
+     * @deny (create, update, delete) Denies a user from creating, updating, or deleting another user's profile.
+     * @deny (list) Listing customer profiles is disallowed.
      * @principle Enforces document ownership for customer profiles.
      */
     match /customers/{customerId} {
@@ -80,48 +60,67 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows a customer to manage their own orders.
+     * @description Allows read/write access to orders only to the authenticated user who owns the customer profile.
      * @path /databases/{database}/documents/customers/{customerId}/orders/{orderId}
-     * @allow get, list: if isOwner(customerId);
-     * @allow create: if isOwner(customerId);
-     * @allow update: if isExistingOwner(customerId);
-     * @allow delete: if isExistingOwner(customerId);
-     * @principle Enforces document ownership for orders using path-based ownership.
+     * @allow (create, get, list, update, delete) Allows a user to create, read, list, update, or delete their own orders if the customerId matches their UID.
+     * @deny (create, get, list, update, delete) Denies a user from creating, reading, listing, updating, or deleting another user's orders.
+     * @principle Enforces document ownership for orders.
      */
     match /customers/{customerId}/orders/{orderId} {
-      allow get, list: if isOwner(customerId);
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
       allow create: if isOwner(customerId);
       allow update: if isExistingOwner(customerId);
       allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Allows a customer to manage items within their own orders.
+     * @description Allows read/write access to order items only to the authenticated user who owns the customer profile.
      * @path /databases/{database}/documents/customers/{customerId}/orders/{orderId}/order_items/{orderItemId}
-     * @allow get, list: if isOwner(customerId);
-     * @allow create: if isOwner(customerId);
-     * @allow update: if isExistingOwner(customerId);
-     * @allow delete: if isExistingOwner(customerId);
-     * @principle Enforces document ownership for order items using path-based ownership.
+     *  @allow (create, get, list, update, delete) Allows a user to create, read, list, update, or delete order items for their own orders.
+     *  @deny (create, get, list, update, delete) Denies a user from creating, reading, listing, updating, or deleting order items for another user's orders.
+     * @principle Enforces document ownership for order items.
      */
     match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
-      allow get, list: if isOwner(customerId);
+      allow get: if isOwner(customerId);
+      allow list: if isOwner(customerId);
       allow create: if isOwner(customerId);
       allow update: if isExistingOwner(customerId);
       allow delete: if isExistingOwner(customerId);
     }
 
     /**
-     * @description Allows read-only access to trending flavor combinations. Write access is not secured in this prototype.
+     * @description Allows public read access to trending flavor data. Write access is denied and requires further authorization.
      * @path /databases/{database}/documents/trending_flavors/{trendingFlavorId}
-     * @allow get, list: if true;
-     * @deny create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
-     * @principle Public read, owner-only writes (TODO: Implement owner validation for writes).
+     * @allow (get, list) Allows any user to read trending flavor data.
+     * @deny (create, update, delete) Denies any user to write trending flavor data.
+     * @principle Public read, restricted write.
      */
     match /trending_flavors/{trendingFlavorId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation for writes once the schema is updated with an ownership field.
+      allow create, update, delete: if false; // TODO: Add authorization logic for trending flavor management.
     }
+
+    /**
+     * @description Denies all access to business financial transactions. Authorization logic must be added.
+     * @path /databases/{database}/documents/business_transactions/{transactionId}
+     * @deny (create, get, list, update, delete) Denies all access.
+     * @principle Requires explicit authorization.
+     */
+    match /business_transactions/{transactionId} {
+      allow get, list, create, update, delete: if false; // TODO: Add authorization logic for business transactions.
+    }
+
+    /**
+     * @description Denies all access to personal financial transactions. Authorization logic must be added.
+     * @path /databases/{database}/documents/personal_transactions/{transactionId}
+     * @deny (create, get, list, update, delete) Denies all access.
+     * @principle Requires explicit authorization.
+     */
+    match /personal_transactions/{transactionId} {
+      allow get, list, create, update, delete: if false; // TODO: Add authorization logic for personal transactions.
+    }
+
   }
 
   // Helper functions
@@ -134,6 +133,6 @@ service cloud.firestore {
   }
 
   function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
   }
 }
