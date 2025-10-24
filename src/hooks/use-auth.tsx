@@ -4,7 +4,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import { User, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { useFirebase, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, Customer } from '@/lib/types';
 import { useDoc } from '@/firebase/firestore/use-doc';
 
 interface AuthContextType {
@@ -26,19 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      // This logic will ensure the specified user is an admin.
-      // It checks on every auth state change, but only writes if necessary.
-      if (user && user.email === 'arthur.vieirask@gmail.com' && firestore) {
-        const userProfileDocRef = doc(firestore, 'users', user.uid);
-        const userProfileSnap = await getDoc(userProfileDocRef);
-        if (!userProfileSnap.exists() || !userProfileSnap.data()?.isAdmin) {
-             await setDoc(userProfileDocRef, { isAdmin: true }, { merge: true });
-        }
-      }
     });
 
     return () => unsubscribe();
-  }, [auth, firestore]);
+  }, [auth]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -61,9 +52,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email || '',
         displayName: displayName,
         photoURL: newUser.photoURL || '',
-        isAdmin: email === 'arthur.vieirask@gmail.com', // Set admin status based on email
+        isAdmin: email === 'arthur.vieirask@gmail.com',
       };
       await setDoc(userProfileDocRef, newUserProfile);
+
+      // Also create a customer document
+      const customerDocRef = doc(firestore, 'customers', newUser.uid);
+      const [firstName, ...lastNameParts] = displayName.split(' ');
+      const newCustomer: Customer = {
+          id: newUser.uid,
+          firstName: firstName || '',
+          lastName: lastNameParts.join(' ') || '',
+          email: newUser.email || '',
+          phone: newUser.phoneNumber || '',
+          address: '',
+      };
+      await setDoc(customerDocRef, newCustomer);
     }
   };
 
