@@ -19,6 +19,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 import type { Customer } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 function getInitials(name: string) {
   const names = name.split(' ');
@@ -26,38 +29,14 @@ function getInitials(name: string) {
   return initials.toUpperCase();
 }
 
-// Static customer data to avoid Firestore permission errors
-const staticCustomers: Customer[] = [
-  {
-    id: '1',
-    firstName: 'Arthur',
-    lastName: 'Vieira',
-    email: 'arthur.vieirask@gmail.com',
-    phone: '(11) 98765-4321',
-    address: 'Rua Exemplo, 123',
-  },
-  {
-    id: '2',
-    firstName: 'Maria',
-    lastName: 'Silva',
-    email: 'maria.silva@example.com',
-    phone: '(21) 91234-5678',
-    address: 'Avenida Brasil, 456',
-  },
-  {
-    id: '3',
-    firstName: 'João',
-    lastName: 'Santos',
-    email: 'joao.santos@example.com',
-    phone: '(31) 95555-8888',
-    address: 'Praça da Liberdade, 789',
-  },
-];
-
-
 export default function CustomersPage() {
-    const customers = staticCustomers;
-    const isLoading = false;
+    const firestore = useFirestore();
+    const customersCollection = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'customers');
+    }, [firestore]);
+
+    const { data: customers, isLoading } = useCollection<Customer>(customersCollection);
 
   return (
     <div>
