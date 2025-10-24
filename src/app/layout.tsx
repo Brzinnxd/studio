@@ -46,10 +46,10 @@ export default function RootLayout({
                 <Header />
                 <main className="p-4 lg:p-6">{children}</main>
               </SidebarInset>
+              <Toaster />
             </ClientSidebarProvider>
           </CartProvider>
         </FirebaseClientProvider>
-        <Toaster />
       </body>
     </html>
   );
