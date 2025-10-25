@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import GoogleButton from 'react-google-button';
 
 const registerSchema = z.object({
   displayName: z.string().min(1, 'O nome é obrigatório.'),
@@ -32,8 +33,9 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -67,6 +69,26 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      toast({
+        title: 'Login bem-sucedido!',
+        description: 'Bem-vindo(a)! Sua conta foi criada.',
+      });
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no login com Google',
+        description: 'Não foi possível fazer login com o Google. Tente novamente.',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
       <Card className="w-full max-w-md">
@@ -76,15 +98,31 @@ export default function RegisterPage() {
             É rápido e fácil. Comece a comprar agora mesmo.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
+        <CardContent className="space-y-4">
+          <GoogleButton
+            label="Registrar com o Google"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading || isGoogleLoading}
+            style={{ width: '100%' }}
+          />
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Ou crie com seu e-mail
+              </span>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="displayName">Nome</Label>
               <Input
                 id="displayName"
                 placeholder="Seu nome completo"
                 {...register('displayName')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               />
               {errors.displayName && <p className="text-sm text-destructive">{errors.displayName.message}</p>}
             </div>
@@ -95,7 +133,7 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="seu@email.com"
                 {...register('email')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
@@ -106,24 +144,26 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="Crie uma senha forte"
                 {...register('password')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Criando conta...' : <> <UserPlus className="mr-2 h-4 w-4" /> Criar Conta </>}
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              {isLoading ? 'Criando conta...' : <> <UserPlus className="mr-2 h-4 w-4" /> Criar Conta </>}
             </Button>
-             <p className="text-sm text-center text-muted-foreground">
-              Já tem uma conta?{' '}
-              <Link href="/login" className="font-semibold text-primary hover:underline">
-                Faça login
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <p className="text-sm text-center text-muted-foreground">
+            Já tem uma conta?{' '}
+            <Link href="/login" className="font-semibold text-primary hover:underline">
+              Faça login
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
 }
+
+    

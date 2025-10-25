@@ -263,7 +263,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -412,3 +413,5 @@
     "reasoning": "This Firestore data structure is designed for Angel's Sweets Emporium, focusing on product presentation, order management, and customer profiles. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is achieved by separating user-specific data (orders, user profiles) from global data (products and trending flavors). Access Modeling utilizes path-based ownership for user-related data (orders) and standard collections for products, user profiles, and trending flavors.\n\nSpecifically:\n\n*   `users`: Stores user profiles, including an `isAdmin` flag for role-based access control.\n*   `products`: Stores product information globally accessible for display.\n*   `customers/{customerId}`: Stores customer profiles. Orders are stored as a subcollection to maintain ownership and improve query performance for a specific customer's order history.\n*   `customers/{customerId}/orders/{orderId}`: Stores orders associated with specific customers, using path-based ownership.\n*   `trending_flavors`: Stores trending flavor combinations globally for display and analysis.\n*   `business_transactions` & `personal_transactions`: Root collections to store financial transactions, separated by context. This allows for simple queries and security rules for financial management.\n\nThis design supports QAPs as follows:\n\n*   Products and trending flavors are stored in root collections, allowing list operations with simple security rules.\n*   Customer data and order data are separated, ensuring secure `list` operations for customer-owned orders via path-based rules without exposing other customer's data.\n\nAuthorization Independence is maintained by:\n\n*   Orders are stored as a subcollection of `/customers/{customerId}/orders/{orderId}`, so security rules can directly verify `request.auth.uid == customerId` without needing to `get()` the customer document."
   }
 }
+
+    

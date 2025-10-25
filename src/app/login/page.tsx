@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import GoogleButton from 'react-google-button';
+import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido.'),
@@ -31,8 +33,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -66,6 +69,27 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      toast({
+        title: 'Login bem-sucedido!',
+        description: 'Bem-vindo(a) de volta!',
+      });
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro no login com Google',
+        description: 'Não foi possível fazer login com o Google. Tente novamente.',
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
       <Card className="w-full max-w-md">
@@ -75,8 +99,24 @@ export default function LoginPage() {
             Use seu email e senha para acessar o sistema.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
+        <CardContent className="space-y-4">
+           <GoogleButton
+              label="Entrar com o Google"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading || isGoogleLoading}
+              style={{ width: '100%' }}
+            />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Ou continue com
+                </span>
+              </div>
+            </div>
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -84,7 +124,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="seu@email.com"
                 {...register('email')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
@@ -95,24 +135,26 @@ export default function LoginPage() {
                 type="password"
                 placeholder="Sua senha"
                 {...register('password')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+             <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
               {isLoading ? 'Entrando...' : <> <LogIn className="mr-2 h-4 w-4" /> Entrar </>}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Não tem uma conta?{' '}
-              <Link href="/register" className="font-semibold text-primary hover:underline">
-                Registre-se aqui
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <p className="text-sm text-center text-muted-foreground">
+            Não tem uma conta?{' '}
+            <Link href="/register" className="font-semibold text-primary hover:underline">
+              Registre-se aqui
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
 }
+
+    
