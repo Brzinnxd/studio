@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -37,6 +37,7 @@ import {
   Trash2,
   AlertTriangle,
   Search,
+  Pencil,
 } from 'lucide-react';
 import {
   Select,
@@ -56,10 +57,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Transaction } from '@/lib/types';
 
 
@@ -76,6 +86,71 @@ const getMonthName = (monthKey: string) => {
     return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 }
 
+function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transaction: Transaction | null, isOpen: boolean, onClose: () => void, onSave: (updatedTransaction: Transaction) => void }) {
+    const [editedTransaction, setEditedTransaction] = useState<Transaction | null>(transaction);
+
+    useEffect(() => {
+        setEditedTransaction(transaction);
+    }, [transaction]);
+
+    if (!isOpen || !editedTransaction) {
+        return null;
+    }
+
+    const handleSave = () => {
+        if (editedTransaction) {
+            onSave(editedTransaction);
+        }
+        onClose();
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Editar Transação</DialogTitle>
+                    <DialogDescription>
+                        Faça alterações na sua transação aqui. Clique em salvar quando terminar.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-name">Nome</Label>
+                        <Input id="edit-name" value={editedTransaction.name} onChange={(e) => setEditedTransaction({ ...editedTransaction, name: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-description">Descrição</Label>
+                        <Input id="edit-description" value={editedTransaction.description} onChange={(e) => setEditedTransaction({ ...editedTransaction, description: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-amount">Valor</Label>
+                        <Input id="edit-amount" type="number" value={editedTransaction.amount} onChange={(e) => setEditedTransaction({ ...editedTransaction, amount: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <RadioGroup value={editedTransaction.type} onValueChange={(value) => setEditedTransaction({ ...editedTransaction, type: value as 'income' | 'expense' })} className="flex gap-4">
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="income" id="edit-income" />
+                                <Label htmlFor="edit-income">Receita</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="expense" id="edit-expense" />
+                                <Label htmlFor="edit-expense">Despesa</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancelar</Button>
+                    </DialogClose>
+                    <Button onClick={handleSave}>Salvar Alterações</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function CashFlowPage() {
   const firestore = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
@@ -85,6 +160,8 @@ export default function CashFlowPage() {
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const transactionsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -121,6 +198,17 @@ export default function CashFlowPage() {
     setDescription('');
     setAmount('');
   };
+  
+  const handleEditClick = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsEditModalOpen(true);
+  };
+  
+  const handleSaveTransaction = (updatedTransaction: Transaction) => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'business_transactions', updatedTransaction.id);
+    setDocumentNonBlocking(docRef, updatedTransaction, { merge: true });
+  }
 
   const handleDeleteTransaction = (id: string) => {
     if (!firestore) return;
@@ -430,7 +518,7 @@ export default function CashFlowPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
+                <TableHead className="text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -441,7 +529,7 @@ export default function CashFlowPage() {
                         <TableCell><Skeleton className='h-5 w-40' /></TableCell>
                         <TableCell><Skeleton className='h-5 w-16' /></TableCell>
                         <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
-                        <TableCell className='text-right'><Skeleton className='h-8 w-8 inline-block' /></TableCell>
+                        <TableCell className='text-center'><Skeleton className='h-8 w-20 inline-block' /></TableCell>
                     </TableRow>
                 ))
               ) : filteredTransactions.length === 0 ? (
@@ -474,14 +562,38 @@ export default function CashFlowPage() {
                         currency: 'BRL',
                       })}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button
+                    <TableCell className="text-center">
+                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteTransaction(t.id)}
+                        onClick={() => handleEditClick(t)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteTransaction(t.id)}>
+                              Confirmar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))
@@ -490,6 +602,12 @@ export default function CashFlowPage() {
           </Table>
         </CardContent>
       </Card>
+      <EditTransactionModal
+        transaction={editingTransaction}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSaveTransaction}
+      />
     </div>
   );
 }
