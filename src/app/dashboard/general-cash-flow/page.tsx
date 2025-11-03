@@ -33,6 +33,7 @@ import {
   ArrowDownCircle,
   Briefcase,
   User,
+  Search,
 } from 'lucide-react';
 import {
   Select,
@@ -46,6 +47,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 
 const getCurrentMonthKey = () => {
@@ -65,6 +67,7 @@ const getMonthName = (monthKey: string) => {
 export default function GeneralCashFlowPage() {
     const firestore = useFirestore();
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
+    const [searchTerm, setSearchTerm] = useState('');
     
     const businessCollection = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -91,11 +94,24 @@ export default function GeneralCashFlowPage() {
         return Array.from(months).sort().reverse();
     }, [businessTransactions, personalTransactions]);
   
-  const displayedTransactions = useMemo(() => {
-      return [...(businessTransactions || []), ...(personalTransactions || [])]
+  const filteredTransactions = useMemo(() => {
+      const allMonthlyTxs = [...(businessTransactions || []), ...(personalTransactions || [])]
         .filter(t => t.date.substring(0, 7) === selectedMonth)
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [businessTransactions, personalTransactions, selectedMonth]);
+        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        if (!searchTerm) {
+            return allMonthlyTxs;
+        }
+
+        const lowercasedTerm = searchTerm.toLowerCase();
+        return allMonthlyTxs.filter(t => 
+            t.name.toLowerCase().includes(lowercasedTerm) ||
+            t.description.toLowerCase().includes(lowercasedTerm) ||
+            (t.type === 'income' ? 'receita' : 'despesa').includes(lowercasedTerm) ||
+            new Date(t.date).toLocaleDateString('pt-BR').includes(lowercasedTerm) ||
+            t.amount.toString().includes(lowercasedTerm)
+        );
+  }, [businessTransactions, personalTransactions, selectedMonth, searchTerm]);
 
   const { businessIncome, businessExpense, personalIncome, personalExpense } = useMemo(() => {
     const bTxs = businessTransactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
@@ -250,8 +266,21 @@ export default function GeneralCashFlowPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico Geral de Transações do Mês</CardTitle>
-          <CardDescription>Todas as transações empresariais e pessoais.</CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>Histórico Geral de Transações do Mês</CardTitle>
+                    <CardDescription>Todas as transações empresariais e pessoais.</CardDescription>
+                </div>
+                <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Pesquisar transações..."
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -273,14 +302,14 @@ export default function GeneralCashFlowPage() {
                         <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
                     </TableRow>
                 ))
-              ) : displayedTransactions.length === 0 ? (
+              ) : filteredTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center h-24">
-                    Nenhuma transação registrada para {getMonthName(selectedMonth)}.
+                     {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
                   </TableCell>
                 </TableRow>
               ) : (
-                displayedTransactions.map((t) => (
+                filteredTransactions.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="text-muted-foreground text-xs">
                         {new Date(t.date).toLocaleDateString('pt-BR')}
@@ -313,5 +342,3 @@ export default function GeneralCashFlowPage() {
     </div>
   );
 }
-
-    

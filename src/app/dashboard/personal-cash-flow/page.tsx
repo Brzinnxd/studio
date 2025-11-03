@@ -36,6 +36,7 @@ import {
   ArrowDownCircle,
   Trash2,
   AlertTriangle,
+  Search,
 } from 'lucide-react';
 import {
   Select,
@@ -82,6 +83,7 @@ export default function PersonalCashFlowPage() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const transactionsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -123,20 +125,32 @@ export default function PersonalCashFlowPage() {
     deleteDocumentNonBlocking(docRef);
   };
   
-  const displayedTransactions = useMemo(() => {
-    return transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
-  }, [transactions, selectedMonth]);
+  const filteredTransactions = useMemo(() => {
+    const monthlyTransactions = transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
+    if (!searchTerm) {
+        return monthlyTransactions;
+    }
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return monthlyTransactions.filter(t => 
+        t.name.toLowerCase().includes(lowercasedTerm) ||
+        t.description.toLowerCase().includes(lowercasedTerm) ||
+        (t.type === 'income' ? 'receita' : 'despesa').includes(lowercasedTerm) ||
+        new Date(t.date).toLocaleDateString('pt-BR').includes(lowercasedTerm) ||
+        t.amount.toString().includes(lowercasedTerm)
+    );
+  }, [transactions, selectedMonth, searchTerm]);
 
   const handleClearMonth = () => {
     if (!firestore) return;
-    displayedTransactions.forEach(t => {
+    const monthlyTransactions = transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
+    monthlyTransactions.forEach(t => {
         const docRef = doc(firestore, 'personal_transactions', t.id);
         deleteDocumentNonBlocking(docRef);
     });
   }
 
   const { totalIncome, totalExpense, netProfit } = useMemo(() => {
-    const txs = displayedTransactions || [];
+    const txs = transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
     const income = txs
       .filter((t) => t.type === 'income')
       .reduce((acc, t) => acc + t.amount, 0);
@@ -148,7 +162,7 @@ export default function PersonalCashFlowPage() {
       totalExpense: expense,
       netProfit: income - expense,
     };
-  }, [displayedTransactions]);
+  }, [transactions, selectedMonth]);
 
 
   const chartData = [
@@ -180,7 +194,7 @@ export default function PersonalCashFlowPage() {
           </div>
            <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={!displayedTransactions || displayedTransactions.length === 0}>
+                <Button variant="destructive" disabled={!filteredTransactions || filteredTransactions.length === 0}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Limpar Mês
                 </Button>
@@ -189,7 +203,7 @@ export default function PersonalCashFlowPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle className='flex items-center gap-2'><AlertTriangle /> Tem certeza?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Isso excluirá permanentemente todas as <strong>{displayedTransactions.length} transações</strong> de <strong>{getMonthName(selectedMonth)}</strong>.
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente todas as <strong>{(transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || []).length} transações</strong> de <strong>{getMonthName(selectedMonth)}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -362,7 +376,18 @@ export default function PersonalCashFlowPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Transações do Mês</CardTitle>
+            <div className="flex justify-between items-center">
+                <CardTitle>Histórico de Transações do Mês</CardTitle>
+                <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Pesquisar transações..."
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -386,14 +411,14 @@ export default function PersonalCashFlowPage() {
                         <TableCell className='text-right'><Skeleton className='h-8 w-8 inline-block' /></TableCell>
                     </TableRow>
                 ))
-              ) : displayedTransactions.length === 0 ? (
+              ) : filteredTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center h-24">
-                    Nenhuma transação registrada para {getMonthName(selectedMonth)}.
+                     {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
                   </TableCell>
                 </TableRow>
               ) : (
-                displayedTransactions.map((t) => (
+                filteredTransactions.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="text-muted-foreground text-xs">
                         {new Date(t.date).toLocaleDateString('pt-BR')}
@@ -435,5 +460,3 @@ export default function PersonalCashFlowPage() {
     </div>
   );
 }
-
-    
