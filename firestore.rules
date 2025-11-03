@@ -55,7 +55,7 @@ service cloud.firestore {
      * @return {bool} True if the user is an admin, false otherwise.
      */
     function isAdmin() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
 
@@ -86,31 +86,27 @@ service cloud.firestore {
      */
     match /products/{productId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if isAdmin();
     }
 
     /**
      * @description Security rules for business transactions.
      * @path /business_transactions/{transactionId}
-     * @allow (get, list) - Allows anyone to read transaction information.
-     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
-     * @principle Allows public read access to transaction information.
+     * @allow (get, list, create, update, delete) - Allows admin users to manage all business transactions.
+     * @principle Restricts financial data management to administrators.
      */
     match /business_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow read, write: if isAdmin();
     }
 
     /**
      * @description Security rules for personal transactions.
      * @path /personal_transactions/{transactionId}
-     * @allow (get, list) - Allows anyone to read transaction information.
-     * @deny (create, update, delete) -  Writes are forbidden in this prototype.
-     * @principle Allows public read access to transaction information.
+     * @allow (get, list, create, update, delete) - Allows admin users to manage all personal transactions.
+     * @principle Restricts financial data management to administrators for this prototype.
      */
     match /personal_transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow read, write: if isAdmin();
     }
 
 
@@ -125,10 +121,10 @@ service cloud.firestore {
      */
     match /customers/{customerId} {
       allow get: if isOwner(customerId);
-      allow list: if false; // Customer listing is not allowed.
+      allow list: if isAdmin(); // Allow admins to list all customers.
       allow create: if isOwner(customerId);
-      allow update: if isOwner(customerId);
-      allow delete: if isOwner(customerId);
+      allow update: if isOwner(customerId) || isAdmin();
+      allow delete: if isOwner(customerId) || isAdmin();
     }
 
     /**
@@ -140,11 +136,11 @@ service cloud.firestore {
      * @principle Enforces path-based ownership for orders.
      */
     match /customers/{customerId}/orders/{orderId} {
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId);
-      allow update: if isOwner(customerId);
-      allow delete: if isOwner(customerId);
+      allow get: if isOwner(customerId) || isAdmin();
+      allow list: if isOwner(customerId) || isAdmin();
+      allow create: if isOwner(customerId) || isAdmin();
+      allow update: if isOwner(customerId) || isAdmin();
+      allow delete: if isOwner(customerId) || isAdmin();
     }
 
     /**
@@ -156,11 +152,11 @@ service cloud.firestore {
      * @principle Enforces path-based ownership for order items.
      */
     match /customers/{customerId}/orders/{orderId}/order_items/{orderItemId} {
-      allow get: if isOwner(customerId);
-      allow list: if isOwner(customerId);
-      allow create: if isOwner(customerId);
-      allow update: if isOwner(customerId);
-      allow delete: if isOwner(customerId);
+      allow get: if isOwner(customerId) || isAdmin();
+      allow list: if isOwner(customerId) || isAdmin();
+      allow create: if isOwner(customerId) || isAdmin();
+      allow update: if isOwner(customerId) || isAdmin();
+      allow delete: if isOwner(customerId) || isAdmin();
     }
 
     /**
@@ -177,3 +173,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

@@ -43,16 +43,10 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/lib/types';
 
-
-type Transaction = {
-  id: string;
-  name: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense';
-  date: string;
-};
 
 const getCurrentMonthKey = () => {
   const now = new Date();
@@ -69,24 +63,32 @@ const getMonthName = (monthKey: string) => {
 
 
 export default function GeneralCashFlowPage() {
+    const firestore = useFirestore();
     const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
-    const [allMonths, setAllMonths] = useState<string[]>([getCurrentMonthKey()]);
     
-    // For now, we will use static data.
-    const businessTransactions: Transaction[] = [];
-    const personalTransactions: Transaction[] = [];
-    const isLoading = false;
+    const businessCollection = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'business_transactions');
+    }, [firestore]);
 
-    useEffect(() => {
+    const personalCollection = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'personal_transactions');
+    }, [firestore]);
+
+    const { data: businessTransactions, isLoading: isBusinessLoading } = useCollection<Transaction>(businessCollection);
+    const { data: personalTransactions, isLoading: isPersonalLoading } = useCollection<Transaction>(personalCollection);
+
+    const isLoading = isBusinessLoading || isPersonalLoading;
+
+    const allMonths = useMemo(() => {
         const allTxs = [...(businessTransactions || []), ...(personalTransactions || [])];
-        if (allTxs.length > 0) {
-            const months = new Set(allTxs.map(t => t.date.substring(0, 7)));
-             const currentMonth = getCurrentMonthKey();
-            if (!months.has(currentMonth)) {
-                months.add(currentMonth);
-            }
-            setAllMonths(Array.from(months).sort().reverse());
+        const months = new Set(allTxs.map(t => t.date.substring(0, 7)));
+         const currentMonth = getCurrentMonthKey();
+        if (!months.has(currentMonth)) {
+            months.add(currentMonth);
         }
+        return Array.from(months).sort().reverse();
     }, [businessTransactions, personalTransactions]);
   
   const displayedTransactions = useMemo(() => {

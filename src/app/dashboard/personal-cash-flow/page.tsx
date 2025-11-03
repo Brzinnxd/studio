@@ -56,22 +56,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-
-type Transaction = {
-  id: string;
-  name: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense';
-  date: string;
-};
-
-const initialTransactions: Transaction[] = [
-    { id: '1', name: 'Salário', description: 'Pagamento mensal', amount: 5000.00, type: 'income', date: new Date().toISOString() },
-    { id: '2', name: 'Aluguel', description: 'Pagamento do apto', amount: 1500.00, type: 'expense', date: new Date().toISOString() },
-    { id: '3', name: 'Supermercado', description: 'Compras do mês', amount: 800.00, type: 'expense', date: new Date().toISOString() },
-];
-
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { Transaction } from '@/lib/types';
 
 const getCurrentMonthKey = () => {
   const now = new Date();
@@ -88,15 +76,22 @@ const getMonthName = (monthKey: string) => {
 
 
 export default function PersonalCashFlowPage() {
+  const firestore = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+
+  const transactionsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'personal_transactions');
+  }, [firestore]);
+
+  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsCollection);
 
   const allMonths = useMemo(() => {
-    const months = new Set(transactions.map(t => t.date.substring(0, 7)));
+    const months = new Set(transactions?.map(t => t.date.substring(0, 7)) || []);
     const currentMonth = getCurrentMonthKey();
     if (!months.has(currentMonth)) {
       months.add(currentMonth);
@@ -106,10 +101,9 @@ export default function PersonalCashFlowPage() {
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount) return;
+    if (!name || !amount || !transactionsCollection) return;
 
-    const newTransaction: Transaction = {
-      id: new Date().getTime().toString(),
+    const newTransaction: Omit<Transaction, 'id'> = {
       name,
       description,
       amount: parseFloat(amount),
@@ -117,23 +111,29 @@ export default function PersonalCashFlowPage() {
       date: new Date().toISOString(),
     };
     
-    setTransactions(prev => [newTransaction, ...prev]);
+    addDocumentNonBlocking(transactionsCollection, newTransaction);
     setName('');
     setDescription('');
     setAmount('');
   };
 
   const handleDeleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    if (!firestore) return;
+    const docRef = doc(firestore, 'personal_transactions', id);
+    deleteDocumentNonBlocking(docRef);
   };
   
-  const handleClearMonth = () => {
-    setTransactions([]);
-  }
-
   const displayedTransactions = useMemo(() => {
-    return transactions.filter(t => t.date.substring(0, 7) === selectedMonth);
+    return transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
   }, [transactions, selectedMonth]);
+
+  const handleClearMonth = () => {
+    if (!firestore) return;
+    displayedTransactions.forEach(t => {
+        const docRef = doc(firestore, 'personal_transactions', t.id);
+        deleteDocumentNonBlocking(docRef);
+    });
+  }
 
   const { totalIncome, totalExpense, netProfit } = useMemo(() => {
     const txs = displayedTransactions || [];
@@ -157,7 +157,6 @@ export default function PersonalCashFlowPage() {
   ];
   
   const COLORS = ['#22c55e', '#ef4444'];
-  const isLoading = false;
 
   return (
     <div className="space-y-6">
