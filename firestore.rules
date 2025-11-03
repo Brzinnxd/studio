@@ -108,6 +108,16 @@ service cloud.firestore {
     match /personal_transactions/{transactionId} {
       allow read, write: if isAdmin();
     }
+    
+    /**
+     * @description Security rules for transfers between accounts.
+     * @path /transfers/{transferId}
+     * @allow (read, write) - Allows admin users to manage all transfers.
+     * @principle Restricts financial data management to administrators.
+     */
+    match /transfers/{transferId} {
+        allow read, write: if isAdmin();
+    }
 
 
     /**
@@ -173,5 +183,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

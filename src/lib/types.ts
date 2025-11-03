@@ -33,3 +33,12 @@ export type Customer = {
   phone: string;
   address: string;
 };
+
+export type Transfer = {
+  id: string;
+  amount: number;
+  fromAccount: 'personal' | 'business';
+  toAccount: 'personal' | 'business';
+  description: string;
+  date: string;
+};
