@@ -84,6 +84,7 @@ export default function PersonalCashFlowPage() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
   const transactionsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -131,14 +132,30 @@ export default function PersonalCashFlowPage() {
         return monthlyTransactions;
     }
     const lowercasedTerm = searchTerm.toLowerCase();
-    return monthlyTransactions.filter(t => 
-        t.name.toLowerCase().includes(lowercasedTerm) ||
-        t.description.toLowerCase().includes(lowercasedTerm) ||
-        (t.type === 'income' ? 'receita' : 'despesa').includes(lowercasedTerm) ||
-        new Date(t.date).toLocaleDateString('pt-BR').includes(lowercasedTerm) ||
-        t.amount.toString().includes(lowercasedTerm)
-    );
-  }, [transactions, selectedMonth, searchTerm]);
+
+    return monthlyTransactions.filter(t => {
+        const date = new Date(t.date).toLocaleDateString('pt-BR');
+        const type = t.type === 'income' ? 'receita' : 'despesa';
+
+        switch (filterType) {
+            case 'date':
+                return date.includes(lowercasedTerm);
+            case 'name':
+                return t.name.toLowerCase().includes(lowercasedTerm) || t.description.toLowerCase().includes(lowercasedTerm);
+            case 'type':
+                return type.includes(lowercasedTerm);
+            case 'amount':
+                return t.amount.toString().includes(lowercasedTerm);
+            case 'all':
+            default:
+                return t.name.toLowerCase().includes(lowercasedTerm) ||
+                       t.description.toLowerCase().includes(lowercasedTerm) ||
+                       type.includes(lowercasedTerm) ||
+                       date.includes(lowercasedTerm) ||
+                       t.amount.toString().includes(lowercasedTerm);
+        }
+    });
+  }, [transactions, selectedMonth, searchTerm, filterType]);
 
   const handleClearMonth = () => {
     if (!firestore) return;
@@ -378,14 +395,28 @@ export default function PersonalCashFlowPage() {
         <CardHeader>
             <div className="flex justify-between items-center">
                 <CardTitle>Histórico de Transações do Mês</CardTitle>
-                <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Pesquisar transações..."
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex items-center gap-2">
+                    <Select value={filterType} onValueChange={setFilterType}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Filtrar por" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="date">Data</SelectItem>
+                            <SelectItem value="name">Nome</SelectItem>
+                            <SelectItem value="type">Tipo</SelectItem>
+                            <SelectItem value="amount">Valor</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <div className="relative w-full max-w-sm">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Pesquisar transações..."
+                            className="pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
         </CardHeader>
