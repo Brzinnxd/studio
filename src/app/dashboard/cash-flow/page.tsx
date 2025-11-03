@@ -104,9 +104,14 @@ function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transa
         onClose();
     };
 
+    const inputStyle = {
+        backgroundColor: 'hsl(var(--primary))',
+        color: 'hsl(var(--primary-foreground))',
+    }
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent>
+            <DialogContent className='bg-card'>
                 <DialogHeader>
                     <DialogTitle>Editar Transação</DialogTitle>
                     <DialogDescription>
@@ -116,15 +121,15 @@ function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transa
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="edit-name">Nome</Label>
-                        <Input id="edit-name" value={editedTransaction.name} onChange={(e) => setEditedTransaction({ ...editedTransaction, name: e.target.value })} />
+                        <Input id="edit-name" style={inputStyle} value={editedTransaction.name} onChange={(e) => setEditedTransaction({ ...editedTransaction, name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-description">Descrição</Label>
-                        <Input id="edit-description" value={editedTransaction.description} onChange={(e) => setEditedTransaction({ ...editedTransaction, description: e.target.value })} />
+                        <Input id="edit-description" style={inputStyle} value={editedTransaction.description} onChange={(e) => setEditedTransaction({ ...editedTransaction, description: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-amount">Valor</Label>
-                        <Input id="edit-amount" type="number" value={editedTransaction.amount} onChange={(e) => setEditedTransaction({ ...editedTransaction, amount: parseFloat(e.target.value) || 0 })} />
+                        <Input id="edit-amount" type="number" style={inputStyle} value={editedTransaction.amount} onChange={(e) => setEditedTransaction({ ...editedTransaction, amount: parseFloat(e.target.value) || 0 })} />
                     </div>
                     <div className="space-y-2">
                         <Label>Tipo</Label>
