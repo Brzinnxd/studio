@@ -104,8 +104,8 @@ function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transa
     };
 
     const inputStyle = {
-        backgroundColor: 'hsl(var(--primary))',
-        color: 'hsl(var(--primary-foreground))',
+        backgroundColor: 'hsl(var(--background))',
+        color: 'hsl(var(--foreground))',
     }
 
     return (
