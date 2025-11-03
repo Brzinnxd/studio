@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import {
   Card,
   CardContent,
@@ -27,7 +27,7 @@ function SubmitButton() {
 
 export default function TrendsPage() {
   const initialState: State = {};
-  const [state, dispatch] = useFormState(getTrendAnalysis, initialState);
+  const [state, dispatch] = React.useActionState(getTrendAnalysis, initialState);
   const [salesData, setSalesData] = React.useState('');
 
   const exampleSalesData = `Exemplo de dados:\n- Pedido 1: Bala Baiana (2), Brigadeiro (4)\n- Pedido 2: Quindim (1), Beijinho (3)\n- Pedido 3: Bala Baiana (5)\n- Pedido 4: Brigadeiro (6), Beijinho (6)`;
