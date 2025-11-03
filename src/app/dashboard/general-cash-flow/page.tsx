@@ -114,7 +114,7 @@ export default function GeneralCashFlowPage() {
                 case 'date':
                     return date.includes(lowercasedTerm);
                 case 'name':
-                    return t.name.toLowerCase().includes(lowercasedTerm) || t.description.toLowerCase().includes(lowercasedTerm);
+                    return t.name.toLowerCase().includes(lowercasedTerm) || (t.description || '').toLowerCase().includes(lowercasedTerm);
                 case 'type':
                     return type.includes(lowercasedTerm);
                 case 'amount':
@@ -122,7 +122,7 @@ export default function GeneralCashFlowPage() {
                 case 'all':
                 default:
                     return t.name.toLowerCase().includes(lowercasedTerm) ||
-                        t.description.toLowerCase().includes(lowercasedTerm) ||
+                        (t.description || '').toLowerCase().includes(lowercasedTerm) ||
                         type.includes(lowercasedTerm) ||
                         date.includes(lowercasedTerm) ||
                         t.amount.toString().includes(lowercasedTerm);
@@ -267,7 +267,7 @@ export default function GeneralCashFlowPage() {
             <CardContent>
                 {isLoading ? <div className='flex justify-center items-center h-[250px]'><Skeleton className='h-[250px] w-full' /></div> :
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData} layout="vertical" margin={{ left: 20 }}>
+                <BarChart data={chartData} layout="vertical" margin={{ left: 60 }}>
                     <XAxis type="number" tickFormatter={(value) => `R$${value/1000}k`} />
                     <YAxis type="category" dataKey="name" />
                     <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
