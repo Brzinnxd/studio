@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -38,6 +38,7 @@ import {
   AlertTriangle,
   Search,
   Pencil,
+  Camera,
 } from 'lucide-react';
 import {
   Select,
@@ -66,11 +67,14 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Transaction } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { analyzeReceiptAction } from './actions';
 
 
 const getCurrentMonthKey = () => {
@@ -156,6 +160,108 @@ function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transa
     );
 }
 
+function ScanReceiptModal({ isOpen, onClose, onAmountExtracted }: { isOpen: boolean, onClose: () => void, onAmountExtracted: (amount: number) => void }) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const getCameraPermission = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                setHasCameraPermission(true);
+
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                setHasCameraPermission(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Acesso à Câmera Negado',
+                    description: 'Por favor, habilite a permissão da câmera nas configurações do seu navegador para usar esta função.',
+                });
+            }
+        };
+
+        getCameraPermission();
+
+        return () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+    }, [isOpen, toast]);
+
+    const handleCapture = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        
+        setIsAnalyzing(true);
+        toast({ title: 'Analisando imagem...', description: 'Aguarde enquanto lemos a nota fiscal.' });
+
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            const dataUri = canvas.toDataURL('image/jpeg');
+            
+            const result = await analyzeReceiptAction({ photoDataUri: dataUri });
+
+            if (result.error) {
+                toast({ variant: 'destructive', title: 'Erro na Análise', description: result.error });
+            } else if (result.totalAmount !== undefined) {
+                onAmountExtracted(result.totalAmount);
+                toast({ title: 'Sucesso!', description: `Valor R$ ${result.totalAmount.toFixed(2)} extraído.` });
+                onClose();
+            }
+        }
+        setIsAnalyzing(false);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Escanear Nota Fiscal</DialogTitle>
+                    <DialogDescription>
+                        Posicione a nota fiscal na frente da câmera e capture a imagem.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                       <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
+                       {hasCameraPermission === false && (
+                           <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Acesso à Câmera Necessário</AlertTitle>
+                                <AlertDescription>
+                                    Permita o acesso à câmera para escanear a nota fiscal.
+                                </AlertDescription>
+                            </Alert>
+                       )}
+                    </div>
+                     <canvas ref={canvasRef} className="hidden" />
+                </div>
+                <DialogFooter>
+                     <Button onClick={handleCapture} disabled={!hasCameraPermission || isAnalyzing}>
+                        {isAnalyzing ? 'Analisando...' : 'Capturar Foto'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function CashFlowPage() {
   const firestore = useFirestore();
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthKey());
@@ -167,6 +273,7 @@ export default function CashFlowPage() {
   const [filterType, setFilterType] = useState('all');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   
   const transactionsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -329,11 +436,17 @@ export default function CashFlowPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Adicionar Transação</CardTitle>
-            <CardDescription>
-              Registre uma nova receita ou despesa no mês atual.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Adicionar Transação</CardTitle>
+              <CardDescription>
+                Registre uma nova receita ou despesa no mês atual.
+              </CardDescription>
+            </div>
+             <Button variant="outline" size="icon" onClick={() => setIsScanModalOpen(true)}>
+              <Camera className="h-4 w-4" />
+              <span className="sr-only">Escanear Nota Fiscal</span>
+            </Button>
           </CardHeader>
           <form onSubmit={handleAddTransaction}>
             <CardContent className="space-y-4">
@@ -612,6 +725,15 @@ export default function CashFlowPage() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveTransaction}
+      />
+      <ScanReceiptModal 
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onAmountExtracted={(extractedAmount) => {
+            setAmount(extractedAmount.toString());
+            setType('expense');
+            setName('Despesa da Nota Fiscal');
+        }}
       />
     </div>
   );
