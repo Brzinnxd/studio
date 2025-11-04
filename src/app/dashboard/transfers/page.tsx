@@ -38,7 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Transfer } from '@/lib/types';
+import type { Transfer, Transaction } from '@/lib/types';
 
 
 export default function TransfersPage() {
@@ -52,23 +52,66 @@ export default function TransfersPage() {
     return collection(firestore, 'transfers');
   }, [firestore]);
 
+  const businessTransactionsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'business_transactions');
+  }, [firestore]);
+
+  const personalTransactionsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'personal_transactions');
+  }, [firestore]);
+
+
   const { data: transfers, isLoading } = useCollection<Transfer>(transfersCollection);
 
   const handleAddTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !amount || !fromAccount || !transfersCollection) return;
+    if (!description || !amount || !fromAccount || !transfersCollection || !businessTransactionsCollection || !personalTransactionsCollection) return;
 
+    const transferAmount = parseFloat(amount);
     const toAccount = fromAccount === 'business' ? 'personal' : 'business';
+    const date = new Date().toISOString();
 
     const newTransfer: Omit<Transfer, 'id'> = {
       description,
-      amount: parseFloat(amount),
+      amount: transferAmount,
       fromAccount,
       toAccount,
-      date: new Date().toISOString(),
+      date: date,
     };
     
+    // 1. Record the transfer itself
     addDocumentNonBlocking(transfersCollection, newTransfer);
+
+    // 2. Create the expense transaction for the 'from' account
+    const expenseTransaction: Omit<Transaction, 'id'> = {
+        name: `Transferência para conta ${toAccount}`,
+        description: description,
+        amount: transferAmount,
+        type: 'expense',
+        date: date
+    }
+    if (fromAccount === 'business') {
+        addDocumentNonBlocking(businessTransactionsCollection, expenseTransaction);
+    } else {
+        addDocumentNonBlocking(personalTransactionsCollection, expenseTransaction);
+    }
+
+    // 3. Create the income transaction for the 'to' account
+    const incomeTransaction: Omit<Transaction, 'id'> = {
+        name: `Transferência da conta ${fromAccount}`,
+        description: description,
+        amount: transferAmount,
+        type: 'income',
+        date: date
+    }
+    if (toAccount === 'business') {
+        addDocumentNonBlocking(businessTransactionsCollection, incomeTransaction);
+    } else {
+        addDocumentNonBlocking(personalTransactionsCollection, incomeTransaction);
+    }
+
 
     setDescription('');
     setAmount('');
@@ -77,6 +120,8 @@ export default function TransfersPage() {
 
   const handleDeleteTransfer = (id: string) => {
     if (!firestore) return;
+    // Note: This only deletes the transfer record, not the associated transactions.
+    // For a real-world app, you might want to implement a more robust deletion logic.
     const docRef = doc(firestore, 'transfers', id);
     deleteDocumentNonBlocking(docRef);
   };
@@ -152,7 +197,7 @@ export default function TransfersPage() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full">
-                Registrar
+                Registrar Transferência
               </Button>
             </CardFooter>
           </form>
@@ -258,6 +303,7 @@ export default function TransfersPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteTransfer(t.id)}
+                          title="Excluir apenas o registro do histórico"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
