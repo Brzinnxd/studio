@@ -16,6 +16,7 @@ import {
   User,
   Combine,
   PlusCircle,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 import { Logo } from '@/components/logo';
@@ -166,6 +167,18 @@ export function MainNav() {
                         <span>Tendências</span>
                         </Link>
                     </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={isActive('/dashboard/transfers')}
+                            tooltip="Transferências"
+                        >
+                            <Link href="/dashboard/transfers">
+                            <ArrowRightLeft />
+                            <span>Transferências</span>
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                     <Collapsible open={isCashFlowOpen} onOpenChange={setIsCashFlowOpen}>
