@@ -393,13 +393,13 @@ export default function CashFlowPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Fluxo de Caixa Empresarial</h1>
-         <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold font-headline">Fluxo de Caixa Empresarial</h1>
+         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 w-full md:w-auto">
           <div className='flex items-center gap-2'>
-            <Label>Ver Relatório</Label>
+            <Label className='flex-shrink-0'>Ver Relatório</Label>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full md:w-[220px]">
                 <SelectValue placeholder="Selecione o mês" />
               </SelectTrigger>
               <SelectContent>
@@ -413,7 +413,7 @@ export default function CashFlowPage() {
           </div>
            <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={!filteredTransactions || filteredTransactions.length === 0}>
+                <Button variant="destructive" disabled={!filteredTransactions || filteredTransactions.length === 0} className="w-full md:w-auto">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Limpar Mês
                 </Button>
@@ -601,11 +601,11 @@ export default function CashFlowPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <CardTitle>Histórico de Transações do Mês</CardTitle>
-             <div className="flex items-center gap-2">
+             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full sm:w-[120px]">
                         <SelectValue placeholder="Filtrar por" />
                     </SelectTrigger>
                     <SelectContent>
@@ -616,7 +616,7 @@ export default function CashFlowPage() {
                         <SelectItem value="amount">Valor</SelectItem>
                     </SelectContent>
                 </Select>
-                <div className="relative w-full max-w-sm">
+                <div className="relative w-full sm:max-w-sm">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                         placeholder="Pesquisar transações..."
@@ -629,95 +629,97 @@ export default function CashFlowPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="text-center">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className='h-5 w-20' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-40' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-16' /></TableCell>
-                        <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
-                        <TableCell className='text-center'><Skeleton className='h-8 w-20 inline-block' /></TableCell>
-                    </TableRow>
-                ))
-              ) : filteredTransactions.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24">
-                    {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
-                  </TableCell>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
-              ) : (
-                filteredTransactions.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-muted-foreground text-xs">
-                        {new Date(t.date).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="font-medium">{t.name}<p className="text-xs text-muted-foreground font-normal">{t.description}</p></TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={t.type === 'income' ? 'default' : 'destructive'}
-                      >
-                        {t.type === 'income' ? 'Receita' : 'Despesa'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-medium ${
-                        t.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}
-                    >
-                      {t.amount.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </TableCell>
-                    <TableCell className="text-center">
-                       <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClick(t)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button
-                            variant="ghost"
-                            size="icon"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteTransaction(t.id)}>
-                              Confirmar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({length: 3}).map((_, i) => (
+                      <TableRow key={i}>
+                          <TableCell><Skeleton className='h-5 w-20' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-40' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-16' /></TableCell>
+                          <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
+                          <TableCell className='text-center'><Skeleton className='h-8 w-20 inline-block' /></TableCell>
+                      </TableRow>
+                  ))
+                ) : filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center h-24">
+                      {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredTransactions.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-muted-foreground text-xs">
+                          {new Date(t.date).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="font-medium">{t.name}<p className="text-xs text-muted-foreground font-normal">{t.description}</p></TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={t.type === 'income' ? 'default' : 'destructive'}
+                        >
+                          {t.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-medium ${
+                          t.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {t.amount.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(t)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteTransaction(t.id)}>
+                                Confirmar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
       <EditTransactionModal
@@ -738,3 +740,5 @@ export default function CashFlowPage() {
     </div>
   );
 }
+
+    

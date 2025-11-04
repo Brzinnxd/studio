@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormStatus } from 'react-dom';
+import { useFormStatus, useFormState } from 'react-dom';
 import {
   Card,
   CardContent,
@@ -39,7 +39,7 @@ export default function TrendsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold font-headline">Análise de Tendências</h1>
+        <h1 className="text-2xl md:text-3xl font-bold font-headline">Análise de Tendências</h1>
         <p className="text-muted-foreground mt-2">
           Use IA para analisar seus dados de vendas e descobrir quais
           combinações de sabores estão em alta.
@@ -65,6 +65,7 @@ export default function TrendsPage() {
                 required
                 value={salesData}
                 onChange={handleTextChange}
+                rows={6}
               />
               {state?.message && state.message.includes('Invalid') && (
                  <p className="text-sm text-destructive">{state.message}</p>
@@ -116,3 +117,5 @@ export default function TrendsPage() {
     </div>
   );
 }
+
+    

@@ -80,7 +80,7 @@ export default function CartPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline">Meu Carrinho</h1>
           <p className="text-muted-foreground mt-2">
@@ -137,7 +137,7 @@ export default function CartPage() {
                       handleSelectItem(item.id, checked as boolean)
                     }
                   />
-                  <div className="relative h-24 w-24 rounded-md overflow-hidden">
+                  <div className="relative h-24 w-24 rounded-md overflow-hidden flex-shrink-0">
                     <Image
                       src={placeholder.imageUrl}
                       alt={placeholder.description}
@@ -177,7 +177,7 @@ export default function CartPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <p className="font-semibold">
+                    <p className="font-semibold text-right">
                       {(item.price * item.quantity).toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
@@ -243,3 +243,5 @@ export default function CartPage() {
     </div>
   );
 }
+
+    

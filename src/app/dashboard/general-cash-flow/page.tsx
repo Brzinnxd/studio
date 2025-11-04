@@ -153,12 +153,12 @@ export default function GeneralCashFlowPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Fluxo de Caixa Geral</h1>
-         <div className="flex items-center gap-4">
-          <Label>Ver Relatório</Label>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold font-headline">Fluxo de Caixa Geral</h1>
+         <div className="flex items-center gap-2 w-full md:w-auto">
+          <Label className='flex-shrink-0'>Ver Relatório</Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-full md:w-[220px]">
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
@@ -269,7 +269,7 @@ export default function GeneralCashFlowPage() {
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData} layout="vertical" margin={{ left: 60 }}>
                     <XAxis type="number" tickFormatter={(value) => `R$${value/1000}k`} />
-                    <YAxis type="category" dataKey="name" />
+                    <YAxis type="category" dataKey="name" width={80} />
                     <Tooltip formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
                     <Legend />
                     <Bar dataKey="Receitas" fill="#22c55e" />
@@ -283,14 +283,14 @@ export default function GeneralCashFlowPage() {
 
       <Card>
         <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <CardTitle>Histórico Geral de Transações do Mês</CardTitle>
                     <CardDescription>Todas as transações empresariais e pessoais.</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="w-full sm:w-[120px]">
                             <SelectValue placeholder="Filtrar por" />
                         </SelectTrigger>
                         <SelectContent>
@@ -301,7 +301,7 @@ export default function GeneralCashFlowPage() {
                             <SelectItem value="amount">Valor</SelectItem>
                         </SelectContent>
                     </Select>
-                    <div className="relative w-full max-w-sm">
+                    <div className="relative w-full sm:max-w-sm">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
                             placeholder="Pesquisar transações..."
@@ -314,62 +314,66 @@ export default function GeneralCashFlowPage() {
             </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className='h-5 w-20' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-40' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-16' /></TableCell>
-                        <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
-                    </TableRow>
-                ))
-              ) : filteredTransactions.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center h-24">
-                     {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
-                  </TableCell>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
-              ) : (
-                filteredTransactions.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-muted-foreground text-xs">
-                        {new Date(t.date).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="font-medium">{t.name}<p className="text-xs text-muted-foreground font-normal">{t.description}</p></TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={t.type === 'income' ? 'default' : 'destructive'}
-                      >
-                        {t.type === 'income' ? 'Receita' : 'Despesa'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-medium ${
-                        t.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}
-                    >
-                      {t.amount.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({length: 3}).map((_, i) => (
+                      <TableRow key={i}>
+                          <TableCell><Skeleton className='h-5 w-20' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-40' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-16' /></TableCell>
+                          <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
+                      </TableRow>
+                  ))
+                ) : filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">
+                      {searchTerm ? 'Nenhuma transação encontrada.' : `Nenhuma transação registrada para ${getMonthName(selectedMonth)}.`}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredTransactions.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-muted-foreground text-xs">
+                          {new Date(t.date).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="font-medium">{t.name}<p className="text-xs text-muted-foreground font-normal">{t.description}</p></TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={t.type === 'income' ? 'default' : 'destructive'}
+                        >
+                          {t.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-medium ${
+                          t.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {t.amount.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

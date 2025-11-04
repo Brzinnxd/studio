@@ -99,7 +99,7 @@ export default function TransfersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold font-headline">Transferências entre Contas</h1>
+        <h1 className="text-2xl md:text-3xl font-bold font-headline">Transferências entre Contas</h1>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -205,69 +205,73 @@ export default function TransfersPage() {
           <CardTitle>Histórico de Transferências</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Movimentação</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className='h-5 w-20' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-40' /></TableCell>
-                        <TableCell><Skeleton className='h-5 w-48' /></TableCell>
-                        <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
-                        <TableCell className='text-right'><Skeleton className='h-8 w-8 inline-block' /></TableCell>
-                    </TableRow>
-                ))
-              ) : !transfers || transfers.length === 0 ? (
+          <div className='overflow-x-auto'>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24">
-                    Nenhuma transferência registrada.
-                  </TableCell>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Movimentação</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
-              ) : (
-                transfers.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-muted-foreground text-xs">
-                        {new Date(t.date).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="font-medium">{t.description}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Badge variant="outline">{t.fromAccount === 'business' ? 'Empresa' : 'Pessoal'}</Badge>
-                        <ArrowRightLeft className='h-3 w-3 text-muted-foreground' />
-                        <Badge>{t.toAccount === 'business' ? 'Empresa' : 'Pessoal'}</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {t.amount.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteTransfer(t.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({length: 3}).map((_, i) => (
+                      <TableRow key={i}>
+                          <TableCell><Skeleton className='h-5 w-20' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-40' /></TableCell>
+                          <TableCell><Skeleton className='h-5 w-48' /></TableCell>
+                          <TableCell className='text-right'><Skeleton className='h-5 w-24 inline-block' /></TableCell>
+                          <TableCell className='text-right'><Skeleton className='h-8 w-8 inline-block' /></TableCell>
+                      </TableRow>
+                  ))
+                ) : !transfers || transfers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center h-24">
+                      Nenhuma transferência registrada.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  transfers.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-muted-foreground text-xs">
+                          {new Date(t.date).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="font-medium">{t.description}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Badge variant="outline">{t.fromAccount === 'business' ? 'Empresa' : 'Pessoal'}</Badge>
+                          <ArrowRightLeft className='h-3 w-3 text-muted-foreground' />
+                          <Badge>{t.toAccount === 'business' ? 'Empresa' : 'Pessoal'}</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {t.amount.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTransfer(t.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
