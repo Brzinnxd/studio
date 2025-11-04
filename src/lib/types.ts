@@ -23,6 +23,7 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   date: string;
+  transferId?: string; // Add this line
 };
 
 export type Customer = {

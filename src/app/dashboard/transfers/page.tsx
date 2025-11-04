@@ -26,6 +26,7 @@ import {
   Briefcase,
   User,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Select,
@@ -34,9 +35,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Transfer, Transaction } from '@/lib/types';
 
@@ -73,7 +85,11 @@ export default function TransfersPage() {
     const toAccount = fromAccount === 'business' ? 'personal' : 'business';
     const date = new Date().toISOString();
 
-    const newTransfer: Omit<Transfer, 'id'> = {
+    const transferDocRef = doc(transfersCollection);
+    const transferId = transferDocRef.id;
+
+    const newTransfer: Transfer = {
+      id: transferId,
       description,
       amount: transferAmount,
       fromAccount,
@@ -90,7 +106,8 @@ export default function TransfersPage() {
         description: description,
         amount: transferAmount,
         type: 'expense',
-        date: date
+        date: date,
+        transferId: transferId,
     }
     if (fromAccount === 'business') {
         addDocumentNonBlocking(businessTransactionsCollection, expenseTransaction);
@@ -104,7 +121,8 @@ export default function TransfersPage() {
         description: description,
         amount: transferAmount,
         type: 'income',
-        date: date
+        date: date,
+        transferId: transferId,
     }
     if (toAccount === 'business') {
         addDocumentNonBlocking(businessTransactionsCollection, incomeTransaction);
@@ -118,12 +136,22 @@ export default function TransfersPage() {
     setFromAccount('');
   };
 
-  const handleDeleteTransfer = (id: string) => {
-    if (!firestore) return;
-    // Note: This only deletes the transfer record, not the associated transactions.
-    // For a real-world app, you might want to implement a more robust deletion logic.
-    const docRef = doc(firestore, 'transfers', id);
-    deleteDocumentNonBlocking(docRef);
+  const handleDeleteTransfer = async (transfer: Transfer) => {
+    if (!firestore || !businessTransactionsCollection || !personalTransactionsCollection) return;
+    
+    // 1. Delete the transfer record
+    const transferDocRef = doc(firestore, 'transfers', transfer.id);
+    deleteDocumentNonBlocking(transferDocRef);
+
+    // 2. Find and delete associated transactions
+    const collectionsToQuery = [businessTransactionsCollection, personalTransactionsCollection];
+    for (const coll of collectionsToQuery) {
+        const q = query(coll, where("transferId", "==", transfer.id));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+            deleteDocumentNonBlocking(doc.ref);
+        });
+    }
   };
   
   const { totalPersonalToBusiness, totalBusinessToPersonal } = useMemo(() => {
@@ -299,14 +327,31 @@ export default function TransfersPage() {
                         })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTransfer(t.id)}
-                          title="Excluir apenas o registro do histórico"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Excluir transferência e transações associadas"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className='flex items-center gap-2'><AlertTriangle /> Tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da transferência e as <strong>duas transações associadas</strong> nos fluxos de caixa.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteTransfer(t)}>
+                                Confirmar Exclusão
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))
