@@ -39,6 +39,7 @@ import {
   Search,
   Pencil,
   Camera,
+  CalendarIcon,
 } from 'lucide-react';
 import {
   Select,
@@ -67,6 +68,12 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -75,6 +82,8 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocki
 import type { Transaction } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeReceiptAction } from './actions';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 const getCurrentMonthKey = () => {
@@ -134,6 +143,32 @@ function EditTransactionModal({ transaction, isOpen, onClose, onSave }: { transa
                     <div className="space-y-2">
                         <Label htmlFor="edit-amount">Valor</Label>
                         <Input id="edit-amount" type="number" style={inputStyle} value={editedTransaction.amount} onChange={(e) => setEditedTransaction({ ...editedTransaction, amount: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-date">Data</Label>
+                       <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            style={inputStyle}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !editedTransaction.date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editedTransaction.date ? format(new Date(editedTransaction.date), "dd/MM/yyyy") : <span>Escolha uma data</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={new Date(editedTransaction.date)}
+                            onSelect={(date) => date && setEditedTransaction({...editedTransaction, date: date.toISOString()})}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-2">
                         <Label>Tipo</Label>
@@ -740,3 +775,5 @@ export default function CashFlowPage() {
     </div>
   );
 }
+
+    
