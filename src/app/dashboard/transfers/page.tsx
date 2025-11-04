@@ -101,9 +101,12 @@ export default function TransfersPage() {
     // 1. Record the transfer itself using setDoc with the new ref
     setDocumentNonBlocking(transferDocRef, newTransfer, {});
   
+    const toAccountName = toAccount === 'business' ? 'empresarial' : 'pessoal';
+    const fromAccountName = fromAccount === 'business' ? 'empresarial' : 'pessoal';
+
     // 2. Create the expense transaction for the 'from' account
     const expenseTransaction: Omit<Transaction, 'id'> = {
-        name: `Transferência para conta ${toAccount}`,
+        name: `Transferência para conta ${toAccountName}`,
         description: `Transferência: ${description}`,
         amount: transferAmount,
         type: 'expense',
@@ -115,7 +118,7 @@ export default function TransfersPage() {
   
     // 3. Create the income transaction for the 'to' account
     const incomeTransaction: Omit<Transaction, 'id'> = {
-        name: `Transferência da conta ${fromAccount}`,
+        name: `Transferência da conta ${fromAccountName}`,
         description: `Transferência: ${description}`,
         amount: transferAmount,
         type: 'income',
