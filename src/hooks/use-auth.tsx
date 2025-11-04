@@ -1,11 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { User, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { User, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { useFirebase, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Customer } from '@/lib/types';
 import { useDoc } from '@/firebase/firestore/use-doc';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +24,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { auth, isUserLoading: isAuthLoading } = useFirebase();
   const firestore = useFirestore();
   const [user, setUser] = useState<User | null>(null);
+  const isMobile = useIsMobile();
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
+
+  useEffect(() => {
+    const processRedirect = async () => {
+      try {
+        // This will only return a result on the redirect page, otherwise it's null.
+        await getRedirectResult(auth);
+      } catch (error) {
+        console.error("Error processing redirect result:", error);
+      } finally {
+        setIsProcessingRedirect(false);
+      }
+    };
+    processRedirect();
+  }, [auth]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -73,7 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    if (isMobile) {
+      // Use redirect for mobile devices, as popups are often blocked.
+      await signInWithRedirect(auth, provider);
+    } else {
+      // Use popup for desktop.
+      await signInWithPopup(auth, provider);
+    }
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -109,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   };
 
-  const isLoading = isAuthLoading || (!!user && isProfileLoading);
+  const isLoading = isAuthLoading || isProcessingRedirect || (!!user && isProfileLoading);
 
   const value = {
     user,
@@ -131,5 +154,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
