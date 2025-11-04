@@ -369,7 +369,7 @@ export default function CatalogPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="text-center mb-12">
-        <h1 className="text-3xl sm:text-4xl font-headline font-bold tracking-tight md:text-5xl">
+        <h1 className="text-3xl sm:text-4xl font-headline font-bold tracking-tight">
           Nosso Doce Catálogo
         </h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
@@ -391,5 +391,3 @@ export default function CatalogPage() {
     </div>
   );
 }
-
-    

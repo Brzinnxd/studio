@@ -130,14 +130,15 @@ export default function CartPage() {
                 (p) => p.id === item.image
               ) as ImagePlaceholder;
               return (
-                <Card key={item.id} className="flex items-center gap-4 p-4">
+                <Card key={item.id} className="flex items-start gap-4 p-4">
                   <Checkbox
+                    className='mt-1'
                     checked={selectedItems.includes(item.id)}
                     onCheckedChange={(checked) =>
                       handleSelectItem(item.id, checked as boolean)
                     }
                   />
-                  <div className="relative h-24 w-24 rounded-md overflow-hidden flex-shrink-0">
+                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-md overflow-hidden flex-shrink-0">
                     <Image
                       src={placeholder.imageUrl}
                       alt={placeholder.description}
@@ -146,50 +147,52 @@ export default function CartPage() {
                       data-ai-hint={placeholder.imageHint}
                     />
                   </div>
-                  <div className="flex-grow">
-                    <h4 className="font-semibold">{item.name}</h4>
-                    <div className="flex items-center border rounded-md w-fit mt-2">
+                  <div className="flex-grow flex flex-col sm:flex-row justify-between">
+                    <div className="flex-grow">
+                      <h4 className="font-semibold">{item.name}</h4>
+                       <div className="flex items-center border rounded-md w-fit mt-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="text"
+                          className="h-8 w-12 text-center border-0 focus-visible:ring-0 p-0"
+                          value={item.quantity}
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          onFocus={handleFocus}
+                          onBlur={(e) => handleBlur(e, item.id)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-row sm:flex-col items-end sm:items-end justify-between mt-2 sm:mt-0">
+                      <p className="font-semibold text-right">
+                        {(item.price * item.quantity).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </p>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
+                        onClick={() => removeFromCart(item.id)}
                       >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="text"
-                        className="h-8 w-12 text-center border-0 focus-visible:ring-0 p-0"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        onFocus={handleFocus}
-                        onBlur={(e) => handleBlur(e, item.id)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        <Plus className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <p className="font-semibold text-right">
-                      {(item.price * item.quantity).toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFromCart(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
                   </div>
                 </Card>
               );
@@ -243,5 +246,3 @@ export default function CartPage() {
     </div>
   );
 }
-
-    
