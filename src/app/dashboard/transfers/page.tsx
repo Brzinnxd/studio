@@ -49,7 +49,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, getDocs } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Transfer, Transaction } from '@/lib/types';
 
 
@@ -80,14 +80,15 @@ export default function TransfersPage() {
   const handleAddTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !amount || !fromAccount || !transfersCollection || !businessTransactionsCollection || !personalTransactionsCollection) return;
-
+  
     const transferAmount = parseFloat(amount);
     const toAccount = fromAccount === 'business' ? 'personal' : 'business';
     const date = new Date().toISOString();
-
+  
+    // Create a new doc ref for the transfer to get the ID upfront
     const transferDocRef = doc(transfersCollection);
     const transferId = transferDocRef.id;
-
+  
     const newTransfer: Transfer = {
       id: transferId,
       description,
@@ -97,40 +98,34 @@ export default function TransfersPage() {
       date: date,
     };
     
-    // 1. Record the transfer itself
-    addDocumentNonBlocking(transfersCollection, newTransfer);
-
+    // 1. Record the transfer itself using setDoc with the new ref
+    setDocumentNonBlocking(transferDocRef, newTransfer, {});
+  
     // 2. Create the expense transaction for the 'from' account
     const expenseTransaction: Omit<Transaction, 'id'> = {
         name: `Transferência para conta ${toAccount}`,
-        description: description,
+        description: `Transferência: ${description}`,
         amount: transferAmount,
         type: 'expense',
         date: date,
         transferId: transferId,
     }
-    if (fromAccount === 'business') {
-        addDocumentNonBlocking(businessTransactionsCollection, expenseTransaction);
-    } else {
-        addDocumentNonBlocking(personalTransactionsCollection, expenseTransaction);
-    }
-
+    const fromCollection = fromAccount === 'business' ? businessTransactionsCollection : personalTransactionsCollection;
+    addDocumentNonBlocking(fromCollection, expenseTransaction);
+  
     // 3. Create the income transaction for the 'to' account
     const incomeTransaction: Omit<Transaction, 'id'> = {
         name: `Transferência da conta ${fromAccount}`,
-        description: description,
+        description: `Transferência: ${description}`,
         amount: transferAmount,
         type: 'income',
         date: date,
         transferId: transferId,
     }
-    if (toAccount === 'business') {
-        addDocumentNonBlocking(businessTransactionsCollection, incomeTransaction);
-    } else {
-        addDocumentNonBlocking(personalTransactionsCollection, incomeTransaction);
-    }
-
-
+    const toCollection = toAccount === 'business' ? businessTransactionsCollection : personalTransactionsCollection;
+    addDocumentNonBlocking(toCollection, incomeTransaction);
+  
+  
     setDescription('');
     setAmount('');
     setFromAccount('');
@@ -139,18 +134,23 @@ export default function TransfersPage() {
   const handleDeleteTransfer = async (transfer: Transfer) => {
     if (!firestore || !businessTransactionsCollection || !personalTransactionsCollection) return;
     
-    // 1. Delete the transfer record
+    // 1. Delete the transfer record itself
     const transferDocRef = doc(firestore, 'transfers', transfer.id);
     deleteDocumentNonBlocking(transferDocRef);
 
-    // 2. Find and delete associated transactions
+    // 2. Find and delete associated transactions in both collections
     const collectionsToQuery = [businessTransactionsCollection, personalTransactionsCollection];
-    for (const coll of collectionsToQuery) {
-        const q = query(coll, where("transferId", "==", transfer.id));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-            deleteDocumentNonBlocking(doc.ref);
-        });
+    try {
+        for (const coll of collectionsToQuery) {
+            const q = query(coll, where("transferId", "==", transfer.id));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                deleteDocumentNonBlocking(doc.ref);
+            });
+        }
+    } catch (error) {
+        console.error("Error deleting associated transactions:", error);
+        // Optionally, add a toast notification for the user about the error
     }
   };
   
@@ -171,7 +171,7 @@ export default function TransfersPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl md:text-3xl font-bold font-headline">Transferências entre Contas</h1>
       </div>
 
