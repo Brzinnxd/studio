@@ -44,7 +44,7 @@ export function MainNav() {
   const { cartItemCount } = useCart();
   const { userProfile } = useAuth();
   const [isCashFlowOpen, setIsCashFlowOpen] = useState(
-    pathname.includes('/dashboard/cash-flow') || pathname.includes('/dashboard/personal-cash-flow') || pathname.includes('/dashboard/general-cash-flow')
+    pathname.includes('/dashboard/cash-flow') || pathname.includes('/dashboard/personal-cash-flow') || pathname.includes('/dashboard/general-cash-flow') || pathname.includes('/dashboard/transfers')
   );
 
   const isActive = (path: string, exact: boolean = false) => {
@@ -52,7 +52,7 @@ export function MainNav() {
     return pathname.startsWith(path);
   };
   
-  const isCashFlowActive = isActive('/dashboard/cash-flow') || isActive('/dashboard/personal-cash-flow') || isActive('/dashboard/general-cash-flow');
+  const isCashFlowActive = isActive('/dashboard/cash-flow') || isActive('/dashboard/personal-cash-flow') || isActive('/dashboard/general-cash-flow') || isActive('/dashboard/transfers');
 
   return (
     <>
@@ -168,18 +168,6 @@ export function MainNav() {
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isActive('/dashboard/transfers')}
-                            tooltip="Transferências"
-                        >
-                            <Link href="/dashboard/transfers">
-                            <ArrowRightLeft />
-                            <span>Transferências</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
                     <SidebarMenuItem>
                     <Collapsible open={isCashFlowOpen} onOpenChange={setIsCashFlowOpen}>
                         <CollapsibleTrigger asChild>
@@ -231,6 +219,18 @@ export function MainNav() {
                             <Link href="/dashboard/general-cash-flow">
                             <Combine className="h-4 w-4" />
                             <span>Geral</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        <SidebarMenuButton
+                            asChild
+                            size="sm"
+                            variant="ghost"
+                            isActive={isActive('/dashboard/transfers')}
+                            className="w-full"
+                        >
+                            <Link href="/dashboard/transfers">
+                            <ArrowRightLeft className="h-4 w-4" />
+                            <span>Transferências</span>
                             </Link>
                         </SidebarMenuButton>
                         </CollapsibleContent>
