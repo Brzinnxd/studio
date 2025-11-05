@@ -96,38 +96,36 @@ export default function GeneralCashFlowPage() {
     }, [businessTransactions, personalTransactions]);
   
   const filteredTransactions = useMemo(() => {
-      const allMonthlyTxs = [...(businessTransactions || []), ...(personalTransactions || [])]
-        .filter(t => t.date.substring(0, 7) === selectedMonth)
-        .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      let allMonthlyTxs = [...(businessTransactions || []), ...(personalTransactions || [])]
+        .filter(t => t.date.substring(0, 7) === selectedMonth);
 
-        if (!searchTerm) {
-            return allMonthlyTxs;
+        if (searchTerm) {
+            const lowercasedTerm = searchTerm.toLowerCase();
+            allMonthlyTxs = allMonthlyTxs.filter(t => {
+                const date = new Date(t.date).toLocaleDateString('pt-BR');
+                const type = t.type === 'income' ? 'receita' : 'despesa';
+
+                switch (filterType) {
+                    case 'date':
+                        return date.includes(lowercasedTerm);
+                    case 'name':
+                        return t.name.toLowerCase().includes(lowercasedTerm) || (t.description || '').toLowerCase().includes(lowercasedTerm);
+                    case 'type':
+                        return type.includes(lowercasedTerm);
+                    case 'amount':
+                        return t.amount.toString().includes(lowercasedTerm);
+                    case 'all':
+                    default:
+                        return t.name.toLowerCase().includes(lowercasedTerm) ||
+                            (t.description || '').toLowerCase().includes(lowercasedTerm) ||
+                            type.includes(lowercasedTerm) ||
+                            date.includes(lowercasedTerm) ||
+                            t.amount.toString().includes(lowercasedTerm);
+                }
+            });
         }
-
-        const lowercasedTerm = searchTerm.toLowerCase();
         
-        return allMonthlyTxs.filter(t => {
-            const date = new Date(t.date).toLocaleDateString('pt-BR');
-            const type = t.type === 'income' ? 'receita' : 'despesa';
-
-            switch (filterType) {
-                case 'date':
-                    return date.includes(lowercasedTerm);
-                case 'name':
-                    return t.name.toLowerCase().includes(lowercasedTerm) || (t.description || '').toLowerCase().includes(lowercasedTerm);
-                case 'type':
-                    return type.includes(lowercasedTerm);
-                case 'amount':
-                    return t.amount.toString().includes(lowercasedTerm);
-                case 'all':
-                default:
-                    return t.name.toLowerCase().includes(lowercasedTerm) ||
-                        (t.description || '').toLowerCase().includes(lowercasedTerm) ||
-                        type.includes(lowercasedTerm) ||
-                        date.includes(lowercasedTerm) ||
-                        t.amount.toString().includes(lowercasedTerm);
-            }
-        });
+        return allMonthlyTxs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [businessTransactions, personalTransactions, selectedMonth, searchTerm, filterType]);
 
   const { businessIncome, businessExpense, personalIncome, personalExpense } = useMemo(() => {

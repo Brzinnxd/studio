@@ -254,34 +254,35 @@ export default function PersonalCashFlowPage() {
   };
   
   const filteredTransactions = useMemo(() => {
-    const monthlyTransactions = transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
-    if (!searchTerm) {
-        return monthlyTransactions;
+    let monthlyTransactions = transactions?.filter(t => t.date.substring(0, 7) === selectedMonth) || [];
+
+    if (searchTerm) {
+        const lowercasedTerm = searchTerm.toLowerCase();
+        monthlyTransactions = monthlyTransactions.filter(t => {
+            const date = new Date(t.date).toLocaleDateString('pt-BR');
+            const type = t.type === 'income' ? 'receita' : 'despesa';
+
+            switch (filterType) {
+                case 'date':
+                    return date.includes(lowercasedTerm);
+                case 'name':
+                    return t.name.toLowerCase().includes(lowercasedTerm) || t.description.toLowerCase().includes(lowercasedTerm);
+                case 'type':
+                    return type.includes(lowercasedTerm);
+                case 'amount':
+                    return t.amount.toString().includes(lowercasedTerm);
+                case 'all':
+                default:
+                    return t.name.toLowerCase().includes(lowercasedTerm) ||
+                           t.description.toLowerCase().includes(lowercasedTerm) ||
+                           type.includes(lowercasedTerm) ||
+                           date.includes(lowercasedTerm) ||
+                           t.amount.toString().includes(lowercasedTerm);
+            }
+        });
     }
-    const lowercasedTerm = searchTerm.toLowerCase();
 
-    return monthlyTransactions.filter(t => {
-        const date = new Date(t.date).toLocaleDateString('pt-BR');
-        const type = t.type === 'income' ? 'receita' : 'despesa';
-
-        switch (filterType) {
-            case 'date':
-                return date.includes(lowercasedTerm);
-            case 'name':
-                return t.name.toLowerCase().includes(lowercasedTerm) || t.description.toLowerCase().includes(lowercasedTerm);
-            case 'type':
-                return type.includes(lowercasedTerm);
-            case 'amount':
-                return t.amount.toString().includes(lowercasedTerm);
-            case 'all':
-            default:
-                return t.name.toLowerCase().includes(lowercasedTerm) ||
-                       t.description.toLowerCase().includes(lowercasedTerm) ||
-                       type.includes(lowercasedTerm) ||
-                       date.includes(lowercasedTerm) ||
-                       t.amount.toString().includes(lowercasedTerm);
-        }
-    });
+    return monthlyTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, selectedMonth, searchTerm, filterType]);
 
   const handleClearMonth = () => {
